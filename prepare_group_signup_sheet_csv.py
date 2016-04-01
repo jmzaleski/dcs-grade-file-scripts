@@ -2,93 +2,58 @@
 
 from __future__ import print_function  #allows print as function
 
-M_FILE_NAME = "cdfid-to-githubid.csv" 
+#M_FILE_NAME = "cdfid-to-githubid.csv" 
 G_FILE_NAME = "groups-cdfid.csv" #from google signup sheet
 
 import csv # see https://docs.python.org/2/library/csv.html
 import sys
+import grade_file_reader
+import group_csv_file_reader
+import matz_utils
+ 
+msg = matz_utils.MessagePrinter(True) #makes for debug..
+msg.setPrefix(sys.argv[0])
 
-def warning(*objs):
-    print("WARNING: ", *objs, file=sys.stderr)
 
-def error(*objs):
-    print("ERROR: ", *objs, file=sys.stderr)
-    exit(42)
+if len(sys.argv) != 3 :
+    msg.error("usage", sys.argv[0], "groups.csv", "grades_file.csv")
+    
+msg.verbose( sys.argv[1])
+fn = sys.argv[1]
+empty_grades_file_name = sys.argv[2]
+msg.debug(empty_grades_file_name)
 
-Debug = False
+#read the csv file giving the cdf ids of the members of each group
+#this returns a dictionary keyed by teamid containing a list of cdfids    
+group_file = group_csv_file_reader.GroupFileReader(fn)
+g = group_file.read_groups();
+cdf_to_teamname = {}
+cdfid_in_groups = {} #check for typos in group file
+for team_name in g.keys():
+    team = g[team_name]
+    for cdfid in team:
+        cdfid_in_groups[cdfid] = cdfid
+        cdf_to_teamname[cdfid] = team_name
+msg.verbose(cdf_to_teamname)
+    
+#read the grades file, adding the team of each student
 
-def debug_message(*objs):
-    if Debug:
-        print("DEBUG: ", *objs, file=sys.stderr)
+gf = grade_file_reader.GradeFileReader(empty_grades_file_name)
+hdr_lines = gf.skipHeader()
+lines = gf.readLines()
 
-def verbose_message(*objs):
-    print("VERBOSE: ", *objs, file=sys.stderr)
+(bad, bad_cdfid_list) = gf.checkCdfid(lines, cdfid_in_groups)
+    
+new_body_lines = gf.readAndAppendColumnFromMap(lines,cdf_to_teamname)
 
-with open(M_FILE_NAME, 'rb') as mapfile:
- map_reader = csv.reader(mapfile, delimiter=',', quotechar='|',dialect=csv.excel_tab)
 
- first_line = True
+# sort with (shell-command-on-region (region-beginning) (region-end) "sort --field-separator=, --key=4" nil nil nil t)
 
- cdfid_to_github = {}
- github_to_cdfid = {}
+for l in hdr_lines:
+    print(l)
+for l in new_body_lines:
+    print(l)    
 
- #read the mapping file and create a map from LOWER CASE cdfid to github id
- for list_cdfid_githubid in map_reader:
-     if first_line:
-         first_line = False
-         continue
-     cdfid = list_cdfid_githubid[0]
-     githubid = list_cdfid_githubid[1]
-     cdfid_to_github[cdfid.lower()] = githubid
-     github_to_cdfid[githubid] = cdfid
-     debug_message( "cdfid=", cdfid, "githubid=","githubid,cdfid_to_github[cdfid]=", githubid,cdfid_to_github[cdfid],"github_to_cdfid[githubid]=",github_to_cdfid[githubid])
-     if not cdfid_to_github[cdfid] == githubid:
-         error(cdfid, "busted")
-     if not github_to_cdfid[githubid] == cdfid:
-         error( githubid, "busted")
-
- all_student_github_id = [] #keep them here to help make invite
-         
- #so now we have the mappings, can read the group file and map the cdfid's to github ids
- with open(G_FILE_NAME, 'rb') as group_file:
-     group_file_reader = csv.reader(group_file, delimiter=',', quotechar='|',dialect=csv.excel_tab)
-
-     first_line = True
-     for list_cdfid_in_group in group_file_reader:
-         if first_line:
-             first_line = False
-             continue;
-
-         team_name=list_cdfid_in_group[0]
-         ta_github=list_cdfid_in_group[1]
-         debug_message( "team_name=",team_name,"ta_github=",ta_github)
-         
-         # group_cdf_id_list may contain random case CDF ids, empty strings, unmapped students
-         group_cdf_id_list = list_cdfid_in_group[2:] 
-         group_githubid_list = []
-
-         #carefully collect the cdfid's for the students in the group, scrubbing it
-         scrubbed = []
-         for cdfid in group_cdf_id_list:
-             if len(cdfid) == 0:
-                 continue
-             if not cdfid in cdfid_to_github.keys():
-                 warning( "SKIPPING adding to team because not in cdfid_to_github", cdfid )
-                 continue
-             student_github = cdfid_to_github[cdfid]
-             group_githubid_list.insert(0,student_github)
-             all_student_github_id.insert(0,student_github)
-
-         #print the mapped group file out
-         group_github_csv_line = "team-" + team_name
-         group_github_csv_line += ","+ ta_github
-         for student_github in group_githubid_list:
-             group_github_csv_line += ","+ student_github
-         print( group_github_csv_line )
-
-     line = ''
-     for s in all_student_github_id:
-        line += "," + s
-     warning(line)
-             
+if bad:
+    msg.error("found CDFID in class list that were not in group file", bad_cdfid_list)
 
