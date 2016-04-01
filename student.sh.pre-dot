@@ -1,0 +1,38 @@
+#!/bin/bash
+
+die(){ echo $*;	exit; }
+
+test ! -z "$1" || die usage: $0 cdf id
+
+source ./dot.sh
+CDF="CSC"$COURSE"H1F"
+CLASS=$CDF
+LIST="$CLASS"-empty
+TAFILE=TA
+
+grep -i $* $CLASS || die failed to find any hits for $*
+
+
+num_lines=$(grep -i $* $CLASS | wc -l)
+#echo "$num_lines"
+
+test "$num_lines" -gt 1 && die matched more than one line.
+
+line=$(grep -i $* $CLASS)
+echo line: $line 
+
+cdf_id=$(echo $line | cut -d' ' -f1)
+#echo $cdf_id
+
+#eg: tutorial section is in second comma separated field
+#999145303 g2harris,T2,harris.chaudhary@mail.utoronto.ca
+
+#tutorial=$(echo $line | cut -d, -f2)
+
+#tutor=$(grep $tutorial $TAFILE)
+
+to_paste="$(grep $cdf_id $CLASS)) $tutor"
+
+echo hit enter to paste to clipboard: '``'$to_paste"''"
+read junk
+echo $to_paste | pbcopy
