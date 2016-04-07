@@ -19,12 +19,11 @@ class GradeFileReader:
         '''
         self.msg = matz_utils.MessagePrinter(False)
         self.msg.setPrefix("GradeFileReader")
+        self.cdfid_to_tut = {}
         try:
             self.grade_file = open(fn, 'rb')
         except:
-            print("eh?",fn)
             self.msg.error("failed to open", fn)
-            self.cdfid_to_tut = {}
     
     def skipHeader(self):
         hdr_lines = []
@@ -64,6 +63,7 @@ class GradeFileReader:
         
 
     def readLines(self):
+        "read all the lines in the file"
         lines = []
         for rawline in self.grade_file:
             line = rawline.rstrip() #how can we figure out what we took off?
@@ -72,16 +72,17 @@ class GradeFileReader:
         return lines
     
     def checkCdfid(self, lines, cdfid_in_map):
+        "test the data in cdfid_in_map. return a aList of cdfid's in the file not in cdfid_in_map"
         found_problem = False
-        list = []
+        aList = []
         for line in lines:
             (dropped, cdfid) = self.extractCdfid(line)
             if dropped:
                 continue
             if not cdfid in cdfid_in_map:
                 found_problem = True
-                list.append(cdfid)
-        return (found_problem, list)
+                aList.append(cdfid)
+        return (found_problem, aList)
                 
     def readAndAppendColumnFromMap(self,cached_lines, cdfid_to_newcolumn_value_map):
         "read the grades file and append value of dictionary to the csv data values "
