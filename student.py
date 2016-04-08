@@ -36,14 +36,6 @@ def parseClassListLine(line):
     email = name_email[1]
     return(cdfid,name,email)
 
-def hasDropped(line):
-    grade_file_tokens = line.rstrip().split()[1].split(",")
-    if len(grade_file_tokens) == 1 and grade_file_tokens[0] == "d":
-        return True;
-    else:
-        return False
-    
-
 # parse empty grades file. build map of cdfid to TA
 #
 # NNNNNNNN    c2matz,0101,TA
@@ -51,6 +43,10 @@ def hasDropped(line):
 # groan, but if the students has dropped, it will look like
 # NNNNNNNN  d  c2matz,0101,TA
 # in which case we don't want to be here at all.
+
+# worse, it can look like:
+# NNNNNNNN    c2matz   ,0101,TA
+
 #
 # parse a line from a  grades file    
 # return (student_number, cdfid, section, ta)
@@ -58,15 +54,25 @@ def hasDropped(line):
 #
 def parseEmptyGradeFileLine(line):
     student_number = "later" #stuff to left of blanks
-    grade_file_tokens = line.rstrip().split()[1].split(",")
-    # if len(grade_file_tokens) == 1 and grade_file_tokens[0] == "d":
-    #     raise Exception("oops student has dropped: " + line)
+    sline = line.rstrip()
+    first_blank = sline.find(' ')
+    #next 4 chars are blank, drop indicator, flag chars..
+    assert sline[first_blank] == ' '
+    assert sline[first_blank+3] == ' '
+    drop_char = sline[first_blank+1]
+    flag_char = sline[first_blank+2]
+    dropped = drop_char == 'd'
+    
+    data_on_sline = sline[first_blank+4:-1]
+    grade_file_tokens = data_on_sline.split(",") 
+    if len(grade_file_tokens) < 3:
+        errorExit("weird line in grade file len(grade_file_tokens) < 3", line )
     cdfid = grade_file_tokens[0]
     section = grade_file_tokens[1]
     ta = grade_file_tokens[2]
     debug_message(cdfid,ta)
     cdfid_to_tut[cdfid] = ta
-    return (student_number, cdfid, section, ta)
+    return (dropped, flag_char, student_number, cdfid, section, ta)
 
 # print a cheesy little menu. If there is just one element in menu_lines, then return 0
 # TODO: be nice to allow user to choose first char of line too.
@@ -114,14 +120,11 @@ cdfid_to_tut = {}
 
 in_header = True    
 for line in empty_file:
-    if len(line) == 1:
-        in_header = False
-        continue
     if in_header:
+        if len(line) == 1:
+            in_header = False
         continue
-    if hasDropped(line):
-        continue
-    sn,cdfid, sec, ta =  parseEmptyGradeFileLine(line)
+    dropped, flag_char, sn,cdfid, sec, ta =  parseEmptyGradeFileLine(line)
     cdfid_to_tut[cdfid] = ta
 
 debug_message(cdfid_to_tut)
