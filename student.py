@@ -7,9 +7,9 @@ Debug = True #True
 
 import sys,os
 import re  #regular expressions
-import matz_utils
+import matz_utils, grade_file_reader
 
-msg = matz_utils.MessagePrinter(True)
+msg = matz_utils.MessagePrinter(False)
 
 # print a cheesy little menu. If there is just one element in menu_lines, then return 0
 # TODO: be nice to allow user to choose first char of line too.
@@ -20,18 +20,13 @@ def menu(menu_lines, prompt):
     for a_matched_line in menu_lines :
         print(n, a_matched_line)
         n += 1
-
-    if len(menu_lines) == 1:
-        selection = 0
-    else:
-        ri = "fubar"
-        try:
-            str_selection = raw_input(prompt)
-            return int(str_selection)
-        except KeyboardInterrupt:
-            msg.error("interrupt")
-        except:
-            msg.error("invalid selection:", str_selection)
+    try:
+        str_selection = raw_input(prompt)
+        return int(str_selection)
+    except KeyboardInterrupt:
+        msg.error("interrupt")
+    except:
+        msg.error("invalid selection:", str_selection)
 
 if len(sys.argv) > 3 :
     msg.debug( sys.argv[1], sys.argv[2])
@@ -42,8 +37,6 @@ if len(sys.argv) > 3 :
 else:
     msg.warning( "usage: ", sys.argv[0], " class-list-file-from-CDF grades-empty query string")
     exit(2)
-
-import grade_file_reader
 
 empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)    
 empty_reader.skipHeader()
