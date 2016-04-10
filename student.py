@@ -37,42 +37,6 @@ def parseClassListLine(line):
     email = name_email[1]
     return(cdfid,name,email)
 
-# parse empty grades file. build map of cdfid to TA
-#
-# NNNNNNNN    c2matz,0101,TA
-#
-# groan, but if the students has dropped, it will look like
-# NNNNNNNN  d  c2matz,0101,TA
-# in which case we don't want to be here at all.
-
-# worse, it can look like:
-# NNNNNNNN    c2matz   ,0101,TA
-#
-# returns: (dropped, flag_char, student_number, cdfid, section, ta)
-# 
-def parseEmptyGradeFileLine(line):
-    student_number = "later" #stuff to left of blanks
-    sline = line.rstrip()
-    first_blank = sline.find(' ')
-    #next 4 chars are blank, drop indicator, flag chars..
-    assert sline[first_blank] == ' '    #always a blank after student number
-    assert sline[first_blank+3] == ' '  #always a black before data fields
-    drop_char = sline[first_blank+1]    #two chars of flags
-    flag_char = sline[first_blank+2]
-    dropped = drop_char == 'd'
-    
-    data_on_sline = sline[first_blank+4:-1]
-    grade_file_tokens = data_on_sline.split(",")
-    
-    #eventually a class will come up soon when I don't have TA sections. to avoid mayhem: 
-    if len(grade_file_tokens) < 3:
-        errorExit("weird line in grade file len(grade_file_tokens) < 3", line )
-    cdfid = grade_file_tokens[0]
-    section = grade_file_tokens[1]
-    ta = grade_file_tokens[2]
-    debug_message(cdfid,ta)
-    return (dropped, flag_char, student_number, cdfid, section, ta)
-
 # print a cheesy little menu. If there is just one element in menu_lines, then return 0
 # TODO: be nice to allow user to choose first char of line too.
 def menu(menu_lines, prompt):
@@ -105,27 +69,25 @@ else:
     warning( "usage: ", sys.argv[0], " class-list-file-from-CDF grades-empty query string")
     exit(2)
 
-try:
-    listfile = open(CLASS_LIST_FILE_NAME, 'rb')
-except:
-    errorExit("failed to open", CLASS_LIST_FILE_NAME)
-
 import grade_file_reader
 
-cdfid_to_tut = {}
 empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)    
 empty_reader.skipHeader()
 
+#build cdfid to TA map
+cdfid_to_tut = {}
 for line in empty_reader.readLines():
     (dropped, flag_char, cdfid, sec, ta) =  empty_reader.parseEmptyGradeFileLine(line)
-    debug_message("line", line)    
-    debug_message("ta", ta)    
     cdfid_to_tut[cdfid] = ta
      
 debug_message(cdfid_to_tut)
-    
+
+#read the CDF class list looking for the query
+class_list_reader = cdf_class_list_reader.CdfClassListFileReader(CLASS_LIST_FILE_NAME)
+
+lines = class_list_reader.readLines()    
 matched_lines = []
-for line in listfile:
+for line in lines:
     line = line.rstrip()
     m = re.search(query_string, line)
     if m:
@@ -138,12 +100,12 @@ line = matched_lines[menu(matched_lines, "select a match: ")].rstrip()
 
 debug_message("hit selected=", line)
 
-cdfid, name, email = parseClassListLine(line)
+(cdfid, name, email) = class_list_reader.parseClassListLine(line)
 ta = cdfid_to_tut[cdfid]
 debug_message(cdfid, name, email,ta)
 
 strs_to_copy = [line, cdfid, name, email, ta]
-#menu_prefix = ["LINE  ", "CDFID ", "NAME  ", "EMAIL", "TA     " ]
+
 menu_lines = ["LINE  "+line, "CDFID "+cdfid, "NAME  "+name, "EMAIL"+email, "TA    " +ta]
 str_to_clipboard = strs_to_copy[menu(menu_lines, "select what to copy to clipboard: ")]
 
