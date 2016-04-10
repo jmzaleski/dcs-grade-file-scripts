@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 from __future__ import print_function  #allows print as function
+import cdf_class_list_reader
 
-Debug = False #True
+Debug = True #True
 
-import csv # see https://docs.python.org/2/library/csv.html
 import sys,os
 import re  #regular expressions
 
@@ -32,6 +32,7 @@ def parseClassListLine(line):
     name_email = cdfid_number_rest[1].split(")")
     cdfid = cdfid_number_rest[0].split(" ")[0]
     student_number = cdfid_number_rest[0].split(" ")[1]
+    debug_message("no use for student number, so far", student_number)
     name = name_email[0] 
     email = name_email[1]
     return(cdfid,name,email)
@@ -46,32 +47,30 @@ def parseClassListLine(line):
 
 # worse, it can look like:
 # NNNNNNNN    c2matz   ,0101,TA
-
 #
-# parse a line from a  grades file    
-# return (student_number, cdfid, section, ta)
-# ["c2matz", "0101", "TA"]
-#
+# returns: (dropped, flag_char, student_number, cdfid, section, ta)
+# 
 def parseEmptyGradeFileLine(line):
     student_number = "later" #stuff to left of blanks
     sline = line.rstrip()
     first_blank = sline.find(' ')
     #next 4 chars are blank, drop indicator, flag chars..
-    assert sline[first_blank] == ' '
-    assert sline[first_blank+3] == ' '
-    drop_char = sline[first_blank+1]
+    assert sline[first_blank] == ' '    #always a blank after student number
+    assert sline[first_blank+3] == ' '  #always a black before data fields
+    drop_char = sline[first_blank+1]    #two chars of flags
     flag_char = sline[first_blank+2]
     dropped = drop_char == 'd'
     
     data_on_sline = sline[first_blank+4:-1]
-    grade_file_tokens = data_on_sline.split(",") 
+    grade_file_tokens = data_on_sline.split(",")
+    
+    #eventually a class will come up soon when I don't have TA sections. to avoid mayhem: 
     if len(grade_file_tokens) < 3:
         errorExit("weird line in grade file len(grade_file_tokens) < 3", line )
     cdfid = grade_file_tokens[0]
     section = grade_file_tokens[1]
     ta = grade_file_tokens[2]
     debug_message(cdfid,ta)
-    cdfid_to_tut[cdfid] = ta
     return (dropped, flag_char, student_number, cdfid, section, ta)
 
 # print a cheesy little menu. If there is just one element in menu_lines, then return 0
@@ -110,23 +109,19 @@ try:
     listfile = open(CLASS_LIST_FILE_NAME, 'rb')
 except:
     errorExit("failed to open", CLASS_LIST_FILE_NAME)
-    
-try:
-    empty_file = open(EMPTY_GRADES, 'rb')
-except:
-    errorExit("failed to open", EMPTY_GRADES)
+
+import grade_file_reader
 
 cdfid_to_tut = {}
+empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)    
+empty_reader.skipHeader()
 
-in_header = True    
-for line in empty_file:
-    if in_header:
-        if len(line) == 1:
-            in_header = False
-        continue
-    dropped, flag_char, sn,cdfid, sec, ta =  parseEmptyGradeFileLine(line)
+for line in empty_reader.readLines():
+    (dropped, flag_char, cdfid, sec, ta) =  empty_reader.parseEmptyGradeFileLine(line)
+    debug_message("line", line)    
+    debug_message("ta", ta)    
     cdfid_to_tut[cdfid] = ta
-
+     
 debug_message(cdfid_to_tut)
     
 matched_lines = []
