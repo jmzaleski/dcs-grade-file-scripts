@@ -129,6 +129,7 @@ for t in team_order:
         raise Exception("bad team name in team_order hack:"+t)
 
 # generate the latex
+
 print latex_doc_header 
 for team_id in team_order:
     printTeamSection(team_id)

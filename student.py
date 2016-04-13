@@ -67,7 +67,11 @@ line = matched_lines[menu(matched_lines, "select a match: ")].rstrip()
 
 msg.debug("hit selected=", line)
 
-(cdfid, name, email) = class_list_reader.parseClassListLine(line)
+#(cdfid, name, email) = class_list_reader.parseClassListLine(line)
+student = class_list_reader.parseClassListLine(line)
+cdfid = student.cdfid
+name = student.name
+email= student.email
 ta = cdfid_to_tut[cdfid]
 msg.debug(cdfid, name, email,ta)
 

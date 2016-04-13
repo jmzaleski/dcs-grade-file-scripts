@@ -74,6 +74,9 @@ class GradeFileReader:
             self.msg.error("malformed line: no blank?", sline)
         assert sline[first_blank] == ' '    #always a blank after student number
         assert sline[first_blank+3] == ' '  #always a black before data fields
+        if not sline[first_blank+4].isalpha(): #real data has to start after blank
+            self.msg.error("malformed line: after flag, then blank, must come alpha at pos", first_blank+4, '"'+sline+'"')
+        #TODO assert something here along lines of is character 
         drop_char = sline[first_blank+1]    #two chars of flags
         flag_char = sline[first_blank+2]
         dropped = drop_char == 'd'
@@ -86,6 +89,8 @@ class GradeFileReader:
         if len(grade_file_tokens) < 3:
             self.msg.error("weird line in grade file len(grade_file_tokens) < 3", line )
         cdfid = grade_file_tokens[0].rstrip()
+        if cdfid == "c6samuem":
+            self.msg.debug("break here..")
         section = grade_file_tokens[1].rstrip()
         ta = grade_file_tokens[2].rstrip()
         self.msg.debug(cdfid,ta)

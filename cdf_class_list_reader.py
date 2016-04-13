@@ -8,67 +8,44 @@ import matz_utils
 
 class CdfClassFileStudentRecord:
     "the information in each line of a CDF class file"
-    def __init__(self, dropped, flag, student_number, cdfid ):
-        self.is_dropped = dropped
-        self.flag = flag
+    def __init__(self, cdfid, student_number, name, email ):
+        self.cdfid = cdfid
         self.student_number = student_number
-        self.cfgid = cdfid
-
-    def get_is_dropped(self):
-        return self.__is_dropped
-
-
-    def get_flag(self):
-        return self.__flag
-
-
-    def get_student_number(self):
-        return self.__student_number
-
-
+        self.name = name
+        self.email = email
+    def __str__(self):
+        return "CdfClassFileStudentRecord cdfid %s student_number %s name %s email %s" %  (self.cdfid,self.student_number,self.name, self.email)
+    
     def get_cdfid(self):
         return self.__cdfid
-
-
-    def set_is_dropped(self, value):
-        self.__is_dropped = value
-
-
-    def set_flag(self, value):
-        self.__flag = value
-
-
-    def set_student_number(self, value):
-        self.__student_number = value
-
-
+    def get_student_number(self):
+        return self.__student_number
+    def get_name(self):
+        return self.__name
+    def get_email(self):
+        return self.__email
     def set_cdfid(self, value):
         self.__cdfid = value
-
-
-    def del_is_dropped(self):
-        del self.__is_dropped
-
-
-    def del_flag(self):
-        del self.__flag
-
-
-    def del_student_number(self):
-        del self.__student_number
-
-
+    def set_student_number(self, value):
+        self.__student_number = value
+    def set_name(self, value):
+        self.__name = value
+    def set_email(self, value):
+        self.__email = value
     def del_cdfid(self):
         del self.__cdfid
+    def del_student_number(self):
+        del self.__student_number
+    def del_name(self):
+        del self.__name
+    def del_email(self):
+        del self.__email
 
-        
-    def cdfid(self):
-        return self.cdfid
-    #eclipse did this. i don't really khnow what it means
-    is_dropped = property(get_is_dropped, set_is_dropped, del_is_dropped, "is_dropped's docstring")
-    flag = property(get_flag, set_flag, del_flag, "flag's docstring")
-    student_number = property(get_student_number, set_student_number, del_student_number, "student_number's docstring")
     cdfid = property(get_cdfid, set_cdfid, del_cdfid, "cdfid's docstring")
+    student_number = property(get_student_number, set_student_number, del_student_number, "student_number's docstring")
+    name = property(get_name, set_name, del_name, "name's docstring")
+    email = property(get_email, set_email, del_email, "email's docstring")
+
         
 class CdfClassListFileReader:
     '''
@@ -77,51 +54,38 @@ class CdfClassListFileReader:
 
     def __init__(self, fn):
         "constructor for CdfClassListFileReader takes file name"
-        self.msg = matz_utils.MessagePrinter(True)
+        self.msg = matz_utils.MessagePrinter(False)
         self.msg.setPrefix("CdfClassListFileReader")
-        
         try:
             self.cdf_file = open(fn, 'rb')
         except:
-            print("eh?",fn)
             self.msg.error("failed to open", fn)
         self.cdfid_to_name_map = {}
     
     def extractCdfid(self, line):
-        (d,csvfields) = self.extractDataFields(line)
-        cdfid = csvfields[0]
-        self.msg.debug(d,cdfid)
-        return (d,cdfid)
+        rec = self.parseClassListLine(line)
+        return (rec.cdfid, rec.name) 
     
-    #example line from a CDF class lst file:
-    #g5matz  771734894 (Zaleski, Mathew) matz@cs.toronto.edu
+    # g5matz   773174940 (Zaleski, Mathew) matz@cs.toronto.edu
     #
-    def extractCdfidName(self, line):
-        "returns tuple (cdfid, name)"
-        #self.msg.debug("EXTRACT",line)
-        tokens_left = line.split('(')[0]  #g5matz  771734894 
-        cdfid = tokens_left.split(' ')[0] #g5matz  771734894 (Zaleski, Mathew) matz@cs.toronto.edu
-
-        tokens_right = line.split('(')[1] #Zaleski, Mathew) matz@cs.toronto.edu
-        name = tokens_right.split(')')[0]  #Zaleski, Mathew
-        #student number is a bit harder, may be one or two blanks
-        self.msg.debug("extractDataField name ", name)
-        self.msg.debug("extractDataField cdfid ", cdfid)
-        return (cdfid, name)
-    
     def parseClassListLine(self, line):
-        "returns tuple (cdfid,name,email) for a line from a CDF class list file"
-        print(line)
-        cdfid_number_rest = line.split("(")
-        name_email = cdfid_number_rest[1].split(")")
-        cdfid = cdfid_number_rest[0].split(" ")[0]
-        student_number = cdfid_number_rest[0].split(" ")[1]
+        "returns instance of CdfClassFileStudentRecord"
+        cdfid_number___rest = line.split("(")            # [ "g5matz    771734940", "Zaleski Mathew) matz@cs.toronto.edu"]
+        cdfid_sn = cdfid_number___rest[0].split(" ")     # [ "g5matz",,,    "771734940"]
+        name_email = cdfid_number___rest[1].split(")")   # [ "Zaleski Mathew", "matz@cs.toronto.edu"]
+        
+        cdfid = cdfid_sn[0]
+        student_number = "" #cdfid_sn[-1-1]                  # really should search for non
+        for s in cdfid_sn[1:]:
+            if len(s) != 0:
+                student_number = s
+                break
+        assert len(student_number) != 0 
         self.msg.debug("no use for student number, so far", student_number)
         name = name_email[0] 
         email = name_email[1]
-        return(cdfid,name,email)    
-
-
+        return CdfClassFileStudentRecord(cdfid,student_number,name,email)
+    
     def readLines(self):
         lines = []
         for rawline in self.cdf_file:
@@ -132,8 +96,9 @@ class CdfClassListFileReader:
 
     def cdfid_to_name(self, cached_lines):
         for line in cached_lines:
-            (cdfid,name) = self.extractCdfidName(line)
-            self.cdfid_to_name_map[cdfid] = name
+            rec = self.parseClassListLine(line)
+            #(cdfid,name) = self.extractCdfidName(line)
+            self.cdfid_to_name_map[rec.cdfid] = rec.name
         return self.cdfid_to_name_map
     
 if __name__ == "__main__" :
@@ -142,8 +107,12 @@ if __name__ == "__main__" :
     ls = me.readLines()
     cdfid_to_name = me.cdfid_to_name(ls)
     for l in ls:
-        (cdfid,name) = me.extractCdfidName(l)
-        print("cdfid", cdfid, "name", name, "cdfid_to_name", cdfid_to_name[cdfid])
+        rec = me.parseClassListLine(l)
+        print(rec)
+        print("cdfid", rec.cdfid)
+        print("name", rec.name)
+        print("student_number", rec.student_number)
+        print("email", rec.email)
 
 
             
