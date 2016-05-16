@@ -121,9 +121,10 @@ awk -f $AWK_SCRIPT $CDF > /tmp/$BODY_BASE$$ || die $AWK_SCRIPT blows it
 awk -f $AWK_SCRIPT $CDF \
 	| paste -d' ' - $BODY_BASE-section \
 	| sort --key=3,3 --key=2.2  \
-	| sed -e 's/ 5101/,5101,TA1,/' \
-	| sed -e 's/ 0101/,0101,TA1,/' \
+	| sed -e 's/ 0101/,0101,TA1/' \
 	> $BODY_BASE 
+
+#	| sed -e 's/ 5101/,5101,TA1,/' \
 
 #shouldn't be any of these
 awk 'length($1) <= 5 {print $1}' $BODY_BASE || die we should have fixed short cdf ids

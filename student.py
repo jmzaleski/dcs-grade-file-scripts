@@ -72,14 +72,26 @@ student = class_list_reader.parseClassListLine(line)
 cdfid = student.cdfid
 name = student.name
 email= student.email
-ta = cdfid_to_tut[cdfid]
+
+if cdfid in cdfid_to_tut:
+    ta = cdfid_to_tut[cdfid]
+else:
+    if cdfid + "__" in cdfid_to_tut:   ####hack for too short cdfid's
+        ta = cdfid_to_tut[cdfid+"__"]
+    else:
+        msg.error("cdf key", cdfid, "in grades file but not in  class list")
 msg.debug(cdfid, name, email,ta)
 
-strs_to_copy = [line, cdfid, name, email, ta]
+mail_to = "mailto:"+ email
+strs_to_copy = [line, cdfid, name, email, mail_to, ta]
 
-menu_lines = ["LINE  "+line, "CDFID "+cdfid, "NAME  "+name, "EMAIL"+email, "TA    " +ta]
+menu_lines = ["LINE  "+line, "CDFID "+cdfid, "NAME  "+name, "EMAIL"+email, mail_to, "TA    " +ta]
+
 str_to_clipboard = strs_to_copy[menu(menu_lines, "select what to copy to clipboard: ")]
 
 msg.debug("string to be copied to clipboard=", str_to_clipboard)
-    
-os.system("/bin/echo -n '%s' | pbcopy" % str_to_clipboard)
+
+if str_to_clipboard == mail_to:
+    os.system('open "%s"' % str_to_clipboard)
+else:
+    os.system("/bin/echo -n '%s' | pbcopy" % str_to_clipboard)

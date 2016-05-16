@@ -18,11 +18,10 @@ CDF="CSC"$COURSE$SESSION
 EMPTY=$CDF-empty
 
 STUDENT_NO=$(grep $1 $EMPTY | awk '{print $1}')
-echo $STUDENT_NO
-
 test ! -z "$STUDENT_NO" || die no cdf id $1 in empty grade file?
 
-echo print stats for student CDF id $1 $student_no
+echo -n print stats for student:
+grep $1 $CDF 
 
 if test -z "$STUDENT_NO"
 then

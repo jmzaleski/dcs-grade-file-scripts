@@ -14,6 +14,8 @@ test -d $GBIN || die no grades bin in $GBIN
 
 mf=$1
 
+$GBIN/glint $mf || die "failed to glint $mf"
+
 test -f ./dot.sh || die cannot find ./dot.sh
 source ./dot.sh
 
@@ -46,4 +48,4 @@ $GBIN/gupdatedrops -c 9 -L $PREFIX $TMP
 #
 #../grades-bin/gpr -d -H -T -M -C -W 10 $TMP | cut -c 15-25,35-37,45-46 | grep -v [1-9]$
 
-$GBIN/gpr -d -H -T -M -C -W 10 $TMP | cut -c 15-25,30-56| grep -v [1-9]$
+$GBIN/gpr -d -H -T -M -C -W 10 $TMP | cut -c 15-25,66-69 | grep -v '[1-9]$'
