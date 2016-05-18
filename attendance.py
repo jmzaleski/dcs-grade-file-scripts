@@ -69,6 +69,9 @@ for l in empty_reader.skipHeader():
 print( "in response to each line, enter 0-absent *-present\n\n")
 
 for line in empty_reader.readLines():
+    (dropped, flag_char, cdfid, sec, ta) =  empty_reader.parseEmptyGradeFileLine(line)
+    #print(cdfid)
+
     #make sure output line ends with a comma   
     out_line = line.rstrip()
     if not out_line.endswith(","):
@@ -77,19 +80,23 @@ for line in empty_reader.readLines():
     #sys.stdout.write("0-absent 1-present 2-remote *-present: ")
     sys.stdout.write(out_line)
     
+    #show picture
+    os.system('open "pics/%s.jpg"' % cdfid)
+
     #program waits on raw input..
     c = getch()
-    if c == 'q' or c == '\x03' or c == '\x04': # control-c or control-d
+    if c == 'q' or  c == 'Q' or c == '\x03' or c == '\x04': # control-c or control-d
         print("\n\nquit on q, control-c, control-d")
         exit(1)
     # echo what user typed (getch eats it)
-    print(c)
     
     # space, enter and anything else means "present"
-    if not (c == '0' or c=='1' or c =='2'):
+    if c == '0' or c=='1' or c =='2':
         out_line += c
+        print(c)
     else:
         out_line += "1"
+        print('1')
         
     print(out_line, file=attend_file)
     
