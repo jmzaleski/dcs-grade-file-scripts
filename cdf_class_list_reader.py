@@ -103,7 +103,7 @@ class CdfClassListFileReader:
     
 if __name__ == "__main__" :
     print ("instantiate ClassListFileReader")
-    me = CdfClassListFileReader("CSC302H1S")
+    me = CdfClassListFileReader("CSC2702HY")
     ls = me.readLines()
     cdfid_to_name = me.cdfid_to_name(ls)
     for l in ls:

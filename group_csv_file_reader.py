@@ -50,3 +50,32 @@ class GroupFileReader:
                 
                 groups[team_name] = scrubbed
         return groups
+    
+if __name__ == "__main__" :
+    msg = matz_utils.MessagePrinter(True)
+    msg.debug("hello from group_scs_file_reader.py")
+    #print ("instantiate ClassListFileReader")
+#     me = CdfClassListFileReader("CSC2702HY")
+#     ls = me.readLines()
+#     cdfid_to_name = me.cdfid_to_name(ls)
+#     for l in ls:
+#         rec = me.parseClassListLine(l)
+#         print(rec)
+#         print("cdfid", rec.cdfid)
+#         print("name", rec.name)
+#         print("student_number", rec.student_number)
+#         print("email", rec.email)
+    MARKUS_GROUP_FILE ="download_grouplist.csv"
+    me = GroupFileReader(MARKUS_GROUP_FILE)
+    g = me.read_groups();
+    cdf_to_teamname = {}
+    cdfid_in_groups = {} #check for typos in group file
+    for team_name in g.keys():
+        team = g[team_name]
+        for cdfid in team:
+            cdfid_in_groups[cdfid] = cdfid
+            cdf_to_teamname[cdfid] = team_name
+    print(g)
+    print(cdfid_in_groups)
+    print(cdf_to_teamname)
+    

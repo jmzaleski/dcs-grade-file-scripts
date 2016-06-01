@@ -5,7 +5,6 @@ from __future__ import print_function  #allows print as function
 #M_FILE_NAME = "cdfid-to-githubid.csv" 
 G_FILE_NAME = "groups-cdfid.csv" #from google signup sheet
 
-import csv # see https://docs.python.org/2/library/csv.html
 import sys
 import grade_file_reader
 import group_csv_file_reader
