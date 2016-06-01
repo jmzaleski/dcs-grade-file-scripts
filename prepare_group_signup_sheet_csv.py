@@ -7,7 +7,7 @@ G_FILE_NAME = "groups-cdfid.csv" #from google signup sheet
 
 import sys
 import grade_file_reader
-import group_csv_file_reader
+import csv_file_reader
 import matz_utils
  
 msg = matz_utils.MessagePrinter(True) #makes for debug..
@@ -24,7 +24,7 @@ msg.debug(empty_grades_file_name)
 
 #read the csv file giving the cdf ids of the members of each group
 #this returns a dictionary keyed by teamid containing a list of cdfids    
-group_file = group_csv_file_reader.GroupFileReader(fn)
+group_file = csv_file_reader.CsvFileToDictionaryReader(fn)
 g = group_file.read_groups();
 cdf_to_teamname = {}
 cdfid_in_groups = {} #check for typos in group file
