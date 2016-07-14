@@ -25,7 +25,6 @@ else:
 #build maps from cdfid (which we can always parse out of these files)
 cdfid_to_tut = {}
 cdfid_to_empty_grades_file_line = {}
-
 empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)    
 empty_reader.skipHeader()
 for line in empty_reader.readLines():
@@ -47,14 +46,17 @@ for line in class_list_reader.readLines() :
 if len(matched_lines) == 0 :
     msg.error("failed to find any lines in", CLASS_LIST_FILE_NAME,"MATCHING", query_string)
 
+#display menu of matched lines so user can select which match they meant.
 menu = MatzMenu(matched_lines,"select a match")
 line = matched_lines[menu.menu()].rstrip()
 
+#now have a class list line, the one that matched the student
 student = class_list_reader.parseClassListLine(line)
 cdfid = student.cdfid
 name = student.name
 email= student.email.strip()
 
+#futz around students who happen to have CDF id's shorter than grades files allow
 if cdfid in cdfid_to_tut:
     ta = cdfid_to_tut[cdfid]
 else:
@@ -65,27 +67,16 @@ else:
 
 eline = cdfid_to_empty_grades_file_line[cdfid]
 
-#array in same order as menu
-strs_to_copy = [line, eline, cdfid, name, email, ta, "MAILTO:", "IMAGE:"]
+menu_items = [line, eline, cdfid, name, email, ta, "MAILTO:", "IMAGE:"]
+m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
+selected_menu_item = menu_items[m2.menu()]
 
-menu_lines = ["CLINE " + line,
-              "ELINE " + eline,
-              "CDFID " + cdfid,
-              "NAME  " + name, 
-              "EMAIL"  + email,
-              "TA    " + ta,
-              "MAILTO:",
-              "IMAGE:"]
-m2 = MatzMenu(menu_lines, "option: ") #number of selected menu item
-
-str_to_clipboard = strs_to_copy[m2.menu()]
-
-msg.debug("string to be copied to clipboard=", str_to_clipboard)
-
-if str_to_clipboard == "MAILTO:":
+#hacky extension to mail student or view his picture
+if selected_menu_item == "MAILTO:":
     print('open mailto:%s' % email)
     os.system('open mailto:%s' % email)
-elif str_to_clipboard == "IMAGE:":
+elif selected_menu_item == "IMAGE:":
+    #probably should do nothing if image file doesn't exist..
     os.system('open pics/%s.jpg' % cdfid)
 else:
-    os.system("/bin/echo -n '%s' | pbcopy" % str_to_clipboard)
+    os.system("/bin/echo -n '%s' | pbcopy" % selected_menu_item)
