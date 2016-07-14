@@ -22,7 +22,7 @@ class MatzMenu(object):
             return 0
         n = 0    
         for a_matched_line in self.menu_lines :
-            print(n, a_matched_line)
+            print("%d %s" % (n, a_matched_line))
             n += 1
         try:
             str_selection = raw_input(self.prompt)
