@@ -2,6 +2,7 @@
 
 from __future__ import print_function  #allows print as function
 import cdf_class_list_reader
+from menu import MatzMenu
 
 Debug = True #True
 
@@ -10,23 +11,6 @@ import re  #regular expressions
 import matz_utils, grade_file_reader
 
 msg = matz_utils.MessagePrinter(False)
-
-# print a cheesy little menu. If there is just one element in menu_lines, then return 0
-# TODO: be nice to allow user to choose first char of line too.
-def menu(menu_lines, prompt):
-    if len(menu_lines) == 1:
-        return 0
-    n = 0    
-    for a_matched_line in menu_lines :
-        print(n, a_matched_line)
-        n += 1
-    try:
-        str_selection = raw_input(prompt)
-        return int(str_selection)
-    except KeyboardInterrupt:
-        msg.error("interrupt")
-    except:
-        msg.error("invalid selection:", str_selection)
 
 if len(sys.argv) > 3 :
     msg.debug( sys.argv[1], sys.argv[2])
@@ -41,15 +25,18 @@ else:
 empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)    
 empty_reader.skipHeader()
 
-#build cdfid to TA map
+#build maps from cdfid (which we can always parse out of these files)
 cdfid_to_tut = {}
+cdfid_to_empty_grades_file_line = {}
+
 for line in empty_reader.readLines():
     (dropped, flag_char, cdfid, sec, ta) =  empty_reader.parseEmptyGradeFileLine(line)
     cdfid_to_tut[cdfid] = ta
+    cdfid_to_empty_grades_file_line[cdfid] = line
      
 msg.debug(cdfid_to_tut)
 
-#read the CDF class list looking for the query
+#read the CDF class list looking for lines that match the query
 class_list_reader = cdf_class_list_reader.CdfClassListFileReader(CLASS_LIST_FILE_NAME)
 
 lines = class_list_reader.readLines()    
@@ -63,11 +50,12 @@ for line in lines:
 if len(matched_lines) == 0 :
     msg.error("failed to find any lines in", CLASS_LIST_FILE_NAME,"MATCHING", query_string)
 
-line = matched_lines[menu(matched_lines, "select a match: ")].rstrip()
+menu = MatzMenu(matched_lines,"select a match")
+#line = matched_lines[menu(matched_lines, "select a match: ")].rstrip()
+line = matched_lines[menu.menu()].rstrip()
 
 msg.debug("hit selected=", line)
 
-#(cdfid, name, email) = class_list_reader.parseClassListLine(line)
 student = class_list_reader.parseClassListLine(line)
 cdfid = student.cdfid
 name = student.name
@@ -85,9 +73,16 @@ msg.debug(cdfid, name, email,ta)
 mail_to = "mailto:"+ email
 strs_to_copy = [line, cdfid, name, email, mail_to, ta]
 
-menu_lines = ["LINE  "+line, "CDFID "+cdfid, "NAME  "+name, "EMAIL"+email, mail_to, "TA    " +ta]
-
-str_to_clipboard = strs_to_copy[menu(menu_lines, "select what to copy to clipboard: ")]
+menu_lines = ["CLINE " + line,
+              "ELINE " + cdfid_to_empty_grades_file_line[cdfid], 
+              "CDFID " + cdfid, 
+              "NAME  " + name, 
+              "EMAIL"  + email,
+              mail_to, 
+              "TA    " + ta]
+m2 = MatzMenu(menu_lines, "option: ")
+#str_to_clipboard = strs_to_copy[menu(menu_lines, "select what to copy to clipboard: ")]
+str_to_clipboard = strs_to_copy[m2.menu()]
 
 msg.debug("string to be copied to clipboard=", str_to_clipboard)
 

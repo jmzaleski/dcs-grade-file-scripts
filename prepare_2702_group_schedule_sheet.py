@@ -20,10 +20,11 @@ class Prepare2702GroupSchedule_sheet(object):
         '''
 if __name__ == "__main__" :
     CLASS_LIST="marks/CSC2702HY"
-    MARKUS_GROUP_FILE ="groups/download_grouplist.csv"
+    #MARKUS_GROUP_FILE ="groups/download_grouplist.csv"
+    MARKUS_GROUP_FILE ="groups/download_grouplist-a2-bookreviews.csv"
     TORID_TO_CDFID_FILE ="marks/utorid_to_cdfid.csv"
 
-    msg = matz_utils.MessagePrinter(True)
+    msg = matz_utils.MessagePrinter(False)
     msg.debug("hello from prepare_2702_group_schedule_sheet.py")
 
     class_list_file_reader = CdfClassListFileReader(CLASS_LIST)
@@ -33,12 +34,16 @@ if __name__ == "__main__" :
     toridmap = csv_file_reader.CsvFileToDictionaryReader(TORID_TO_CDFID_FILE).read_groups()
 
     torid_to_cdfid_map = {}
+    cdfid_to_torid_map = {}
     for torid in toridmap.keys():
-        torid_to_cdfid_map[torid] = toridmap[torid][1] 
-
-    print("torid_to_cdfid:")
-    for torid in torid_to_cdfid_map:
-        print( "%s,%s" % (torid,torid_to_cdfid_map[torid]))
+        cdfid = toridmap[torid][1]
+        torid_to_cdfid_map[torid] = cdfid
+        cdfid_to_torid_map[cdfid] = torid 
+         
+    if msg.debugMode:
+        print("torid_to_cdfid:")
+        for torid in torid_to_cdfid_map:
+            print( "%s,%s" % (torid,torid_to_cdfid_map[torid]))
 
     r = csv_file_reader.CsvFileToDictionaryReader(MARKUS_GROUP_FILE)
     r.set_skip_first_line(False)
@@ -56,17 +61,22 @@ if __name__ == "__main__" :
             cdfid_in_groups[cdfid] = cdfid
             cdf_to_teamname[cdfid] = team_name
         
-    print("group to names:")
-    for team_name in g:
-        member_string = ""
-        for torid in g[team_name]:
-            if not torid in torid_to_cdfid_map:
-                continue
-            cdfid = torid_to_cdfid_map[torid]
-            member_string += cdfid_to_name[torid_to_cdfid_map[torid]] + "," 
-        print("%s, %s" %( team_name, member_string))
+    if msg.debugMode:
+        print("group to names:")
+        for team_name in g:
+            member_string = ""
+            for torid in g[team_name]:
+                if not torid in torid_to_cdfid_map:
+                    continue
+                cdfid = torid_to_cdfid_map[torid]
+                member_string += cdfid_to_name[torid_to_cdfid_map[torid]] + "," 
+            print("%s, %s" %( team_name, member_string))
         
     print("cdf id to group:")
     #chop this into grades file sorted by cdfid
     for cdfid in cdf_to_teamname:
         print( "%s,%s" % (cdfid,cdf_to_teamname[cdfid]))
+        
+    for cdfid in cdfid_to_torid_map:
+        if not cdfid in cdf_to_teamname:
+            print("%s,no-group" % cdfid)

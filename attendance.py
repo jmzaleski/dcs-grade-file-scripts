@@ -5,7 +5,7 @@ import cdf_class_list_reader
 
 Debug = True #True
 
-import sys,os
+import sys,os, subprocess
 import re  #regular expressions
 import matz_utils, grade_file_reader
 
@@ -81,7 +81,14 @@ for line in empty_reader.readLines():
     sys.stdout.write(out_line)
     
     #show picture
-    os.system('open "pics/%s.jpg"' % cdfid)
+    jpg_file = "pics/%s.jpg" % cdfid
+    shell_cmd = "open -g %s" % jpg_file
+    #preview_cmd = "/Applications/Preview.app/Contents/MacOS/Preview"
+    #img_viewer = "/usr/local/bin/display" #imagemagick
+
+    os.system(shell_cmd )
+    #subprocess.call([img_viewer, jpg_file ])
+    #proc = subprocess.Popen([img_viewer, jpg_file ])
 
     #program waits on raw input..
     c = getch()
@@ -99,7 +106,11 @@ for line in empty_reader.readLines():
         print('1')
         
     print(out_line, file=attend_file)
-    
+    #now kill preview.app. doesn't work. open is too sneaky.
+    #print(proc.pid)
+    #proc.terminate()
+    #proc.kill()
+
 attend_file.close()
      
 
