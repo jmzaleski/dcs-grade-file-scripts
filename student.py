@@ -37,8 +37,9 @@ msg.debug(cdfid_to_tut)
 #read the CDF class list looking for lines that match the query
 matched_lines = []
 class_list_reader = cdf_class_list_reader.CdfClassListFileReader(CLASS_LIST_FILE_NAME)
-for line in class_list_reader.readLines() :
-    line = line.rstrip()
+line = ""
+for bline in class_list_reader.readLines() :
+    line = str(bline.rstrip())
     m = re.search(query_string, line)
     if m:
         matched_lines.insert(0,line)
@@ -60,10 +61,7 @@ email= student.email.strip()
 if cdfid in cdfid_to_tut:
     ta = cdfid_to_tut[cdfid]
 else:
-    if cdfid + "__" in cdfid_to_tut:   ####hack for too short cdfid's
-        ta = cdfid_to_tut[cdfid+"__"]
-    else:
-        msg.error("cdf key", cdfid, "in grades file but not in  class list")
+    msg.error("cdf key", cdfid, "in grades file but not in  class list")
 
 eline = cdfid_to_empty_grades_file_line[cdfid]
 
