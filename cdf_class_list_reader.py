@@ -66,23 +66,36 @@ class CdfClassListFileReader:
         rec = self.parseClassListLine(line)
         return (rec.cdfid, rec.name) 
     
-    # g5matz   773174940 (Zaleski, Mathew) matz@cs.toronto.edu
-    #
+    # matz,771734940,LEC 0101,Zaleski,Mathew,matz@mail.utoronto.ca
+    
+    def parseClassListLineUtorid(self, line):
+        "returns instance of CdfClassFileStudentRecord"
+        fields = line.split(",")
+        utorid = fields[0]
+        student_number = fields[1]
+        name = fields[3]
+        email = fields[5]
+        sec = fields[2]
+        return CdfClassFileStudentRecord(utorid,student_number,name,email)
+
     def parseClassListLine(self, line):
         "returns instance of CdfClassFileStudentRecord"
+        if line.find("(") == -1:
+            return self.parseClassListLineUtorid(line)
+
         cdfid_number___rest = line.split("(")            # [ "g5matz    771734940", "Zaleski Mathew) matz@cs.toronto.edu"]
         cdfid_sn = cdfid_number___rest[0].split(" ")     # [ "g5matz",,,    "771734940"]
         name_email = cdfid_number___rest[1].split(")")   # [ "Zaleski Mathew", "matz@cs.toronto.edu"]
-        
+
         cdfid = cdfid_sn[0]
         student_number = "" #cdfid_sn[-1-1]                  # really should search for non
         for s in cdfid_sn[1:]:
             if len(s) != 0:
                 student_number = s
                 break
-        assert len(student_number) != 0 
+        assert len(student_number) != 0
         self.msg.debug("no use for student number, so far", student_number)
-        name = name_email[0] 
+        name = name_email[0]
         email = name_email[1]
         return CdfClassFileStudentRecord(cdfid,student_number,name,email)
     
