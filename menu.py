@@ -25,12 +25,17 @@ class MatzMenu(object):
             print("%d %s" % (n, a_matched_line))
             n += 1
         try:
-            str_selection = raw_input(self.prompt)
-            return int(str_selection)
+            str_selection = raw_input(self.prompt)  # this one for console.
+            #str_selection = input(self.prompt)     # pycharm debugger likes this better.
+            #print (">>", str_selection, "<<")
+            if len(str_selection) == 0:
+                return 0 #just enter selects zero'th menu item
+            else:
+                return int(str_selection)
         except KeyboardInterrupt:
-            #msg.error("interrupt")
-            return
+            #print("keyboardinterrupt")
+            return 0
         except:
-            #msg.error("invalid selection:", str_selection)
-            return
+            print("interrupt.. prob invalid selection:", str_selection)
+            return 0
     
