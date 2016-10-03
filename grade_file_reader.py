@@ -6,7 +6,6 @@ Created on Apr 1, 2016
 from __future__ import print_function  #allows print as function
 import matz_utils
 import re
-from numpy.oldnumeric.ma import new_take
 
 class GradeFileReader:
     '''
@@ -67,13 +66,25 @@ class GradeFileReader:
     # returns: (dropped, flag_char, cdfid, section, ta)
     # 
     def parseEmptyGradeFileLine(self,line):
-        sline = line.rstrip()
+        sline = str(line.rstrip())
+
+        for c in sline:
+            print(c)
+            if not c.isdigit():
+                if c == '*':
+                    return () #comment..
+                else:
+                    print(sline)
+                    assert c == ' '
+                    break
+
         first_blank = sline.find(' ')
         #next 4 chars are blank, drop indicator, flag chars..
+
         if not sline[first_blank] == ' ':
             self.msg.error("malformed line: no blank?", sline)
-        assert sline[first_blank] == ' '    #always a blank after student number
-        assert sline[first_blank+3] == ' '  #always a black before data fields
+            assert sline[first_blank] == ' '    #always a blank after student number
+        #assert sline[first_blank+3] == ' '  #always a black before data fields
         if not sline[first_blank+4].isalpha(): #real data has to start after blank
             self.msg.error("malformed line: after flag, then blank, must come alpha at pos", first_blank+4, '"'+sline+'"')
         #TODO assert something here along lines of is character 
