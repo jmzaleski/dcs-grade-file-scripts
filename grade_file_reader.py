@@ -68,15 +68,16 @@ class GradeFileReader:
     def parseEmptyGradeFileLine(self,line):
         sline = str(line.rstrip())
 
+        #look for comment lines. Not entirely clear what is a comment, but a * following student number glints.
+        #so look at characters until a non-digit (end of stud number) then * is a comment, blank is a valid data line
         for c in sline:
-            print(c)
+            #valid grades file line starts with student number.. then either a comment * or a blank
             if not c.isdigit():
                 if c == '*':
-                    return () #comment..
+                    return () #comment returns empty tuple. yeech?
                 else:
-                    print(sline)
                     assert c == ' '
-                    break
+                    break #rest of line might be valid data..
 
         first_blank = sline.find(' ')
         #next 4 chars are blank, drop indicator, flag chars..
