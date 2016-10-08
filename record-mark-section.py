@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# port install python35 +readline
+# else readline acts very strangely around prompts.
+
 """
 knows how to handle my 2016 fall CDF empty grades files built from the new classlists that contain all sorts of useful data
 """
