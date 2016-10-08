@@ -45,8 +45,13 @@ if len(matched_lines) == 0 :
     msg.error("failed to find any lines in", EMPTY_GRADES,"MATCHING", query_string)
 
 #display menu of matched lines so user can select which match they meant.
-menu = MatzMenu(matched_lines,"select a match")
-line = matched_lines[menu.menu()].rstrip()
+menu = MatzMenu(matched_lines,"select student: ")
+resp = menu.menu()
+if resp < 0 or resp > len(matched_lines)-1:
+    print("invalid response")
+    exit(0)
+
+line = matched_lines[resp].rstrip()
 
 #now have a class list line, the one that matched the student
 
@@ -86,7 +91,11 @@ email = data_fields[-1]
 menu_items = [line] + data_fields + ["MAILTO:", "IMAGE:"]
 
 m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
-selected_menu_item = menu_items[m2.menu()]
+resp = m2.menu()
+if resp <0:
+    exit(0)
+
+selected_menu_item = menu_items[resp]
 
 print(selected_menu_item)
 
