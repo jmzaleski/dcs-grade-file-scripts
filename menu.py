@@ -5,7 +5,7 @@ Created on Jul 14, 2016
 '''
 class MatzMenu(object):
     '''
-    print a cheesy little menu
+    print a cheesy little menu. returns -1 if interrupt or goofy key entered.
     '''
 
     def __init__(self, menu_lines, prompt):
@@ -33,9 +33,9 @@ class MatzMenu(object):
             else:
                 return int(str_selection)
         except KeyboardInterrupt:
-            #print("keyboardinterrupt")
-            return 0
+            #here if user types control-C (or whatever terminal key interrupts)
+            return -1
         except:
             print("interrupt.. prob invalid selection:", str_selection)
-            return 0
+            return -1
     
