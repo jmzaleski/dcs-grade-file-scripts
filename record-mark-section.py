@@ -133,48 +133,36 @@ else:
 is_more = True
 try:
     while is_more:
-        matched_lines = []
-        while not len(matched_lines) == 1:
+        selected_student_line = None
+        while selected_student_line == None:
             query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
             if query_string == None:
                 is_more = False
-                break
+                break   #no more students to look up
             elif len(query_string) == 0:
-                continue
+                continue #try query again..
 
             matched_lines = gfr.matching_lines(query_string)
-
-            #query didn't match any students
             if len(matched_lines) == 0:
                 print(query_string, "matched nothing.. try again")
-                continue
-
-            #query matched one line is special case.. we're done. ohoh what if it's wrong one?
-            if len(matched_lines) == 1:
+            elif len(matched_lines) == 1:
                 selected_student_line = matched_lines[0]
             else:
                 #query_string matched more than one student.. print menu of matches
                 matched_lines.append("NO") #add choice that it wasn't right student
                 menu = MatzMenu(matched_lines,"select a match: ")
-                selected_student_line = matched_lines[menu.menu()].rstrip()
-                if selected_student_line == "NO":
-                    continue
+                resp = matched_lines[menu.menu()].rstrip()
+                if resp == "NO":
+                    selected_student_line = None #evidently not what user was looking for.
+                else:
+                    selected_student_line = resp #yup, this is the oen
 
-            matched_lines = [selected_student_line]
-
-        # come out of loop with a selected_student_line, which is a
-        # grades file line, the one that matched the student identified by query_string
-        # append mark to line..
-
-        if not is_more:
-            break #we're done entering students.
-
-        if not gfr.append_mark_to_line(selected_student_line,1):
-            print(selected_student_line, "not found.. have your changed it already this run?")
+        if selected_student_line:
+            if not gfr.append_mark_to_line(selected_student_line,1):
+                print(selected_student_line, "not found.. have your changed it already this run?")
 
 except:
-    print("an exception happened, save to temp file and pick up pieces by hand")
-#print(line_array[ix_of_line_to_modify])
+    print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
 
 while True:
     try:
