@@ -38,7 +38,9 @@ def read_utorids_from_cdf_class_list_file(fn):
         print("exception opening or reading", fn)
 
 class GradeFileReaderWriter(object):
-    "read a Jim Clarke style grades file and squirrel away the data for later"
+    """read a Jim Clarke style grades file and squirrel away the data for later.
+    Later we will use this object to retreive lines that match a given query.
+    """
     def __init__(self, fn):
         self.grade_file_name = fn
         self.line_array = []
@@ -71,32 +73,6 @@ gfr = GradeFileReaderWriter(grade_file_name)
 gfr.print()
 
 completion_options = read_utorids_from_cdf_class_list_file(class_list_file_name)
-
-# read the grades file, squirreling away the lines
-# also make association from line contents to index
-# line_array = []             # saves the lines.. will be rewritten with mark
-# line_value_index = {}       # remembers the index of each line
-# try:
-#     with open(grade_file_name, 'rb') as grade_file:
-#         grade_file = open(grade_file_name, 'rb')
-#         ix = 0
-#         for bline in grade_file:
-#             line = bline.decode('UTF-8').rstrip('\n')
-#             line_array.append(line)
-#             line_value_index[line] = ix  # remember the spot in line_array..
-#             ix += 1
-# except:
-#     print("failed to open", grade_file_name)
-
-# read the classlist to get a list of all the utorid's so we can set readline up to do completion on utorid
-# here we pretend that first field of CDF class file will always be utorid
-# import csv
-# completion_options = []
-# with open(class_list_file_name, 'r') as csv_file:
-#     csv_file_reader = csv.reader(csv_file, delimiter=',') #, quotechar='|', dialect=csv.excel_tab)
-#     for student_record in csv_file_reader:
-#         utorid = student_record[0] #yuck. first field of class file better be utorid
-#         completion_options.append(student_record[0])
 
 #magic forces in the utorid's as completion options
 readline.set_completer(SimpleCompleter(completion_options).complete)
