@@ -21,35 +21,30 @@ def parse_positional_args():
     args = parser.parse_args()
     return (args.class_list_file_name, args.grade_file_name)
 
-(CLASS_LIST_FILE_NAME, GRADE_FILE_NAME) =  parse_positional_args()
-
-
-#build maps from cdfid (which we can always parse out of these files)
-
-try:
-    grade_file = open(GRADE_FILE_NAME, 'rb')
-except:
-    print("failed to open", fn)
-
-line_array = []             # saves the lines.. will be rewritten with mark
-line_value_index = {}       # remembers the index of each line
+(class_list_file_name, grade_file_name) =  parse_positional_args()
 
 # read the grades file, squirreling away the lines
 # also make association from line contents to index
-
-ix = 0
-for bline in grade_file:
-    line = bline.decode('UTF-8').rstrip('\n')
-    line_array.append(line)
-    line_value_index[line] = ix #remember the spot in line_array..
-    ix += 1
+line_array = []             # saves the lines.. will be rewritten with mark
+line_value_index = {}       # remembers the index of each line
+try:
+    with open(grade_file_name, 'rb') as grade_file:
+        grade_file = open(grade_file_name, 'rb')
+        ix = 0
+        for bline in grade_file:
+            line = bline.decode('UTF-8').rstrip('\n')
+            line_array.append(line)
+            line_value_index[line] = ix  # remember the spot in line_array..
+            ix += 1
+except:
+    print("failed to open", grade_file_name)
 
 import csv
 completion_options = []
 
 # read the classlist to get a list of all the utorid's so we can set readline up to do completion on utorid
 # here we pretend that first field of CDF class file will always be utorid
-with open(CLASS_LIST_FILE_NAME, 'r') as csv_file:
+with open(class_list_file_name, 'r') as csv_file:
     csv_file_reader = csv.reader(csv_file, delimiter=',') #, quotechar='|', dialect=csv.excel_tab)
     for student_record in csv_file_reader:
         utorid = student_record[0] #yuck. first field of class file better be utorid

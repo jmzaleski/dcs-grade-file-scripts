@@ -22,8 +22,15 @@ test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
 #### assumes that the classlist has been updated already
 
 TMP_MF=/tmp/$mf$$
+TMP_CL=/tmp/cl$$
+
+echo have to test rest of this this for new CDF class list format.
+exit 2
+#something like 
+cut -d, -f2 $CLASSLIST > $TMP_CL
 
 cp $mf $TMP_MF
+
 
 # -c 9 something about 9 vs 10 digit student numbers
 # since our students are currently a mixture,
@@ -31,7 +38,8 @@ cp $mf $TMP_MF
 # which is okay, I guess.
 # more annoying is that the gupdatedrops rewrites the grades file with 10 digit numbers.
 #
-CMD="$GBIN/gupdatedrops -c 9 -L $CLASSLIST"
+#CMD="$GBIN/gupdatedrops -c 9 -L $CLASSLIST"
+CMD="$GBIN/gupdatedrops -c 9 -L $TMP_CL"
 
 #this sets the drop column for gonzo students
 $CMD $TMP_MF || die "failed to run $CMD $TMP_MF"
