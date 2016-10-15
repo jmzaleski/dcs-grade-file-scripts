@@ -37,6 +37,25 @@ def read_utorids_from_cdf_class_list_file(fn):
     except:
         print("exception opening or reading", fn)
 
+def read_query_from_input(prompt):
+    "read a line from stdin"
+    try:
+        # readline will do completion on utorid's but can enter any string from grade file too
+        query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        if len(query_string) == 0:
+            return None
+        else:
+            return query_string
+    except KeyboardInterrupt:
+        print("..keyboard interrupt..")
+        return '' #empty string
+
+    except EOFError:
+        print("..eof..")
+        return None
+
+
+
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
     Later we will use this object to retreive lines that match a given query.
@@ -70,7 +89,6 @@ class GradeFileReaderWriter(object):
 (class_list_file_name, grade_file_name) =  parse_positional_args()
 
 gfr = GradeFileReaderWriter(grade_file_name)
-gfr.print()
 
 completion_options = read_utorids_from_cdf_class_list_file(class_list_file_name)
 
@@ -96,22 +114,12 @@ try:
     while is_more:
         matched_lines = []
         while not len(matched_lines) == 1:
-            try:
-                #readline will do completion on utorid's but can enter any string from grade file too
-                query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
-            except KeyboardInterrupt:
-                query_string = '' #just try again
-                print("..keyboard interrupt..")
+            query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+            if query_string == None:
+                is_more = False
+                break
+            elif len(query_string) == 0:
                 continue
-            except EOFError:
-                is_more = False
-                print("..eof..")
-                break
-
-            #gimme to users who doesn't know how to make EOF
-            if len(query_string) == 0: #empty line, we're done entering names
-                is_more = False
-                break
 
             #TODO use filter
             #look for query in lines of from GRADES file (looking for right student)
