@@ -81,6 +81,27 @@ class GradeFileReaderWriter(object):
         except:
             print("failed to open", grade_file_name)
 
+    def matching_lines(self, query):
+        "return lines that match the query"
+        return [l for l in self.line_array if re.search(query,l)]
+
+    def append_mark_to_line(self,student_line,mark):
+        """append the mark, which may be a string or a number, to the right line.
+        Returns true if line is found and mark appended correctly, o/w False"""
+        if student_line in self.line_value_index:
+            ix = self.line_value_index[student_line]
+            before = self.line_array[ix]
+            after = before
+            if not after.endswith(","):
+                after += ","
+            after += str(mark)
+            self.line_array[ix] = after
+            print("line[", ix, "] <-", after)
+            return True
+        else:
+            #print(student_line, "not in", self.line_value_index)
+            return False
+
     def print(self):
         print("GradeFileReader.line_array", self.line_array)
         print("GradeFileReader.line_value_array", self.line_value_index)
@@ -121,19 +142,14 @@ try:
             elif len(query_string) == 0:
                 continue
 
-            #TODO use filter
-            #look for query in lines of from GRADES file (looking for right student)
-            for line in gfr.line_array:
-                m = re.search(query_string, line)
-                if m:
-                    matched_lines.insert(0,line)
+            matched_lines = gfr.matching_lines(query_string)
 
             #query didn't match any students
             if len(matched_lines) == 0:
                 print(query_string, "matched nothing.. try again")
                 continue
 
-            #query matched one special case.. just choose it. What if it's wrong student??
+            #query matched one line is special case.. we're done. ohoh what if it's wrong one?
             if len(matched_lines) == 1:
                 selected_student_line = matched_lines[0]
             else:
@@ -153,22 +169,8 @@ try:
         if not is_more:
             break #we're done entering students.
 
-        line_with_mark_appended = selected_student_line
-
-        if not line_with_mark_appended.endswith(","):
-            line_with_mark_appended += ","
-
-        #todo enter mark here (as opposed to 1/0)
-        line_with_mark_appended += "1"
-
-        #if this fails to find a student it means that line has changed already.
-        #maybe make this explict by adding a dict of booleans?
-        if selected_student_line in gfr.line_value_index:
-            ix_of_line_to_modify = gfr.line_value_index[selected_student_line]
-            gfr.line_array[ix_of_line_to_modify] = line_with_mark_appended
-            print("line[", ix_of_line_to_modify, "] <-", line_with_mark_appended)
-        else:
-            print(selected_student_line, "not in", gfr.line_value_index)
+        if not gfr.append_mark_to_line(selected_student_line,1):
+            print(selected_student_line, "not found.. have your changed it already this run?")
 
 except:
     print("an exception happened, save to temp file and pick up pieces by hand")
