@@ -16,32 +16,35 @@ import sys,os
 import re  #regular expressions
 import matz_utils, grade_file_reader
 import readline
+import argparse
+
 from complete import SimpleCompleter
 
 msg = matz_utils.MessagePrinter(False)
 
-if len(sys.argv) == 3 :
-    msg.debug( sys.argv[1], sys.argv[2])
-    CLASS_LIST_FILE_NAME = sys.argv[1]
-    EMPTY_GRADES = sys.argv[2]
-else:
-    msg.warning( "usage: ", sys.argv[0], " class-list-file-from-CDF grades-empty")
-    exit(2)
+parser = argparse.ArgumentParser()
+parser.add_argument("class_list_file_name", help="name of CDF class list file")
+parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
+args = parser.parse_args()
+CLASS_LIST_FILE_NAME = args.class_list_file_name
+GRADE_FILE_NAME = args.grade_file_name
 
 #build maps from cdfid (which we can always parse out of these files)
 
-empty_reader = grade_file_reader.GradeFileReader(EMPTY_GRADES)
+grade_file_reader = grade_file_reader.GradeFileReader(GRADE_FILE_NAME)
+
+#squirrel away grade file header so we can regurgitate it later
 hdr = []
-for l in empty_reader.skipHeader():
+for l in grade_file_reader.skipHeader():
     hdr.append(l)
 
-saved_lines_by_utorid = {}
 
+saved_lines_by_utorid = {}  # associate each line in the grades file with utorid
 line_array = []             # saves the lines.. will be rewritten with mark
 line_value_index = {}       # remembers the index of each line
 
 ix = 0
-for bline in empty_reader.readLines():
+for bline in grade_file_reader.readLines():
     line = bline.decode('UTF-8')
     line_array.append(line)
     line_value_index[line] = ix
@@ -130,6 +133,8 @@ try:
         #todo enter mark here (as opposed to 1/0)
         line_with_mark_appended += "1"
 
+        #if this fails to find a student it means that line has changed already.
+        #maybe make this explict by adding a dict of booleans?
         ix_of_line_to_modify = line_value_index[selected_student_line]
         line_array[ix_of_line_to_modify] = line_with_mark_appended
         print("line[", ix_of_line_to_modify, "] <-", line_with_mark_appended)
