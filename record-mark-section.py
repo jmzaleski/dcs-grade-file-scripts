@@ -15,40 +15,88 @@ import sys,os, re, readline, argparse
 from complete import SimpleCompleter
 
 def parse_positional_args():
+    "parse the command line parameters of this program"
     parser = argparse.ArgumentParser()
     parser.add_argument("class_list_file_name", help="name of CDF class list file")
     parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
     args = parser.parse_args()
     return (args.class_list_file_name, args.grade_file_name)
 
+def read_utorids_from_cdf_class_list_file(fn):
+    """assuming fn is a csv file, which CDF class lists are, read the file and return an array of the utorids"""
+    import csv
+    completion_options = []
+    try:
+        with open(fn, 'r') as csv_file:
+            csv_file_reader = csv.reader(csv_file, delimiter=',')
+            for student_record in csv_file_reader:
+                # yuck. assuming first field of class file is torid
+                utorid = student_record[0]
+                completion_options.append(student_record[0])
+            return completion_options
+    except:
+        print("exception opening or reading", fn)
+
+class GradeFileReaderWriter(object):
+    "read a Jim Clarke style grades file and squirrel away the data for later"
+    def __init__(self, fn):
+        self.grade_file_name = fn
+        self.line_array = []
+        self.line_value_index = {}
+        self.read_file()
+        return
+
+    def read_file(self):
+        try:
+            with open(self.grade_file_name, 'rb') as grade_file:
+                grade_file = open(grade_file_name, 'rb')
+                ix = 0
+                for bline in grade_file:
+                    line = bline.decode('UTF-8').rstrip('\n')
+                    self.line_array.append(line)
+                    self.line_value_index[line] = ix  # remember the spot in line_array..
+                    ix += 1
+                grade_file.close()
+        except:
+            print("failed to open", grade_file_name)
+
+    def print(self):
+        print("GradeFileReader.line_array", self.line_array)
+        print("GradeFileReader.line_value_array", self.line_value_index)
+
+
 (class_list_file_name, grade_file_name) =  parse_positional_args()
+
+gfr = GradeFileReaderWriter(grade_file_name)
+gfr.print()
+
+completion_options = read_utorids_from_cdf_class_list_file(class_list_file_name)
 
 # read the grades file, squirreling away the lines
 # also make association from line contents to index
-line_array = []             # saves the lines.. will be rewritten with mark
-line_value_index = {}       # remembers the index of each line
-try:
-    with open(grade_file_name, 'rb') as grade_file:
-        grade_file = open(grade_file_name, 'rb')
-        ix = 0
-        for bline in grade_file:
-            line = bline.decode('UTF-8').rstrip('\n')
-            line_array.append(line)
-            line_value_index[line] = ix  # remember the spot in line_array..
-            ix += 1
-except:
-    print("failed to open", grade_file_name)
-
-import csv
-completion_options = []
+# line_array = []             # saves the lines.. will be rewritten with mark
+# line_value_index = {}       # remembers the index of each line
+# try:
+#     with open(grade_file_name, 'rb') as grade_file:
+#         grade_file = open(grade_file_name, 'rb')
+#         ix = 0
+#         for bline in grade_file:
+#             line = bline.decode('UTF-8').rstrip('\n')
+#             line_array.append(line)
+#             line_value_index[line] = ix  # remember the spot in line_array..
+#             ix += 1
+# except:
+#     print("failed to open", grade_file_name)
 
 # read the classlist to get a list of all the utorid's so we can set readline up to do completion on utorid
 # here we pretend that first field of CDF class file will always be utorid
-with open(class_list_file_name, 'r') as csv_file:
-    csv_file_reader = csv.reader(csv_file, delimiter=',') #, quotechar='|', dialect=csv.excel_tab)
-    for student_record in csv_file_reader:
-        utorid = student_record[0] #yuck. first field of class file better be utorid
-        completion_options.append(student_record[0])
+# import csv
+# completion_options = []
+# with open(class_list_file_name, 'r') as csv_file:
+#     csv_file_reader = csv.reader(csv_file, delimiter=',') #, quotechar='|', dialect=csv.excel_tab)
+#     for student_record in csv_file_reader:
+#         utorid = student_record[0] #yuck. first field of class file better be utorid
+#         completion_options.append(student_record[0])
 
 #magic forces in the utorid's as completion options
 readline.set_completer(SimpleCompleter(completion_options).complete)
@@ -91,7 +139,7 @@ try:
 
             #TODO use filter
             #look for query in lines of from GRADES file (looking for right student)
-            for line in line_array:
+            for line in gfr.line_array:
                 m = re.search(query_string, line)
                 if m:
                     matched_lines.insert(0,line)
@@ -131,12 +179,12 @@ try:
 
         #if this fails to find a student it means that line has changed already.
         #maybe make this explict by adding a dict of booleans?
-        if selected_student_line in line_value_index:
-            ix_of_line_to_modify = line_value_index[selected_student_line]
-            line_array[ix_of_line_to_modify] = line_with_mark_appended
+        if selected_student_line in gfr.line_value_index:
+            ix_of_line_to_modify = gfr.line_value_index[selected_student_line]
+            gfr.line_array[ix_of_line_to_modify] = line_with_mark_appended
             print("line[", ix_of_line_to_modify, "] <-", line_with_mark_appended)
         else:
-            print(selected_student_line, "not in", line_value_index)
+            print(selected_student_line, "not in", gfr.line_value_index)
 
 except:
     print("an exception happened, save to temp file and pick up pieces by hand")
@@ -155,7 +203,7 @@ while True:
         print("really? interupt and you don't get to save!")
         continue
 
-for l in line_array:
+for l in gfr.line_array:
     print(l, file=new_file)
 new_file.close()
 
