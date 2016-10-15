@@ -14,13 +14,15 @@ import sys,os, re, readline, argparse
 
 from complete import SimpleCompleter
 
-parser = argparse.ArgumentParser()
-parser.add_argument("class_list_file_name", help="name of CDF class list file")
-parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
-args = parser.parse_args()
+def parse_positional_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("class_list_file_name", help="name of CDF class list file")
+    parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
+    args = parser.parse_args()
+    return (args.class_list_file_name, args.grade_file_name)
 
-CLASS_LIST_FILE_NAME = args.class_list_file_name
-GRADE_FILE_NAME = args.grade_file_name
+(CLASS_LIST_FILE_NAME, GRADE_FILE_NAME) =  parse_positional_args()
+
 
 #build maps from cdfid (which we can always parse out of these files)
 
@@ -37,7 +39,7 @@ line_value_index = {}       # remembers the index of each line
 
 ix = 0
 for bline in grade_file:
-    line = bline.decode('UTF-8').rstrip()
+    line = bline.decode('UTF-8').rstrip('\n')
     line_array.append(line)
     line_value_index[line] = ix #remember the spot in line_array..
     ix += 1
