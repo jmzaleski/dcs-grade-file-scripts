@@ -7,10 +7,9 @@
 knows how to handle my 2016 fall CDF empty grades files built from the new classlists that contain all sorts of useful data
 """
 from __future__ import print_function  #allows print as function
-import cdf_class_list_reader
 from menu import MatzMenu
 
-import sys,os, re, readline, argparse
+import sys,os, re,readline, argparse
 
 from complete import SimpleCompleter
 
@@ -23,7 +22,8 @@ def parse_positional_args():
     return (args.class_list_file_name, args.grade_file_name)
 
 def read_utorids_from_cdf_class_list_file(fn):
-    """assuming fn is a csv file, which CDF class lists are, read the file and return an array of the utorids"""
+    """assuming fn is a csv file, which CDF class lists are,
+    read the file and return an array of the utorids"""
     import csv
     completion_options = []
     try:
@@ -49,7 +49,6 @@ def read_query_from_input(prompt):
     except KeyboardInterrupt:
         print("..keyboard interrupt..")
         return '' #empty string
-
     except EOFError:
         print("..eof..")
         return None
@@ -103,8 +102,46 @@ class GradeFileReaderWriter(object):
             return False
 
     def print(self):
+        """debugging.. print the arrays"""
         print("GradeFileReader.line_array", self.line_array)
         print("GradeFileReader.line_value_array", self.line_value_index)
+
+    def write_to_new_grade_file(self,fn):
+        """write the modified lines out to a new file name"""
+        with open(fn,'w') as new_file:
+            for l in self.line_array:
+                print(l, file=new_file)
+
+
+def select_a_student(gfr):
+    """"prompt user for query and narrow it down to one student in grade file.
+    Returns a line, or None, which indicates user entered empty query or EOF, presumably to indicate they are finished"""
+
+    while True:
+        query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        if query_string == None:
+            return None
+        elif len(query_string) == 0:
+            continue  # try query again..
+
+        matched_lines = gfr.matching_lines(query_string)
+        if len(matched_lines) == 0:
+            print(query_string, "matched nothing.. try again")
+        elif len(matched_lines) == 1:
+            return matched_lines[0]
+        else:
+            # query_string matched more than one student.. print menu of matches
+            # with an additional choice of NO
+            # user choses one, we're good. User choose NO, go around again.
+            matched_lines.append("NO")  # add choice that it wasn't right student
+            menu = MatzMenu(matched_lines, "select a match: ")
+            user_choice = matched_lines[menu.menu()].rstrip()
+            if user_choice == "NO":
+                continue #didn't like choices.. try again
+            else:
+                return user_choice  # yup, this is the oen
+        assert False #never here
+    return None
 
 
 (class_list_file_name, grade_file_name) =  parse_positional_args()
@@ -130,56 +167,35 @@ else:
 # if get wrong single hit.. geeze, then what?
 # for the last name, just enter (empty line), that goes on to write new marks file
 
-is_more = True
 try:
-    while is_more:
-        selected_student_line = None
-        while selected_student_line == None:
-            query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
-            if query_string == None:
-                is_more = False
-                break   #no more students to look up
-            elif len(query_string) == 0:
-                continue #try query again..
-
-            matched_lines = gfr.matching_lines(query_string)
-            if len(matched_lines) == 0:
-                print(query_string, "matched nothing.. try again")
-            elif len(matched_lines) == 1:
-                selected_student_line = matched_lines[0]
-            else:
-                #query_string matched more than one student.. print menu of matches
-                matched_lines.append("NO") #add choice that it wasn't right student
-                menu = MatzMenu(matched_lines,"select a match: ")
-                resp = matched_lines[menu.menu()].rstrip()
-                if resp == "NO":
-                    selected_student_line = None #evidently not what user was looking for.
-                else:
-                    selected_student_line = resp #yup, this is the oen
-
-        if selected_student_line:
+    while True:
+        selected_student_line = select_a_student(gfr)
+        if selected_student_line == None:
+            break
+        else:
             if not gfr.append_mark_to_line(selected_student_line,1):
-                print(selected_student_line, "not found.. have your changed it already this run?")
-
+                print(selected_student_line, "not found.. have you changed it already this run?")
 except:
     print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
 
+# carefully prompt for file name. keep trying until we write the data.
+# Really, really don't want to lose the typing that went on above!!
 while True:
     try:
         new_file_name = input("write modified lines into file named:")
         try:
-            new_file = open(new_file_name, 'w')
+            gfr.write_to_new_grade_file(new_file_name)
         except:
-            print("could not open ", new_file_name, "for writing")
+            print("exception happened opening ", new_file_name, "for writing or actually writing data")
             continue
-        break
-    except:
-        print("really? interupt and you don't get to save!")
+        os.system("ls -l " + new_file_name)
+        exit(0)
+
+    except EOFError:
+        print("..eof..okay then, really quit w/o saving..")
+        exit(2)
+
+    except KeyboardInterrupt:
+        print("really? caught that interupt but guessing you still want to save! EOF to quit")
         continue
 
-for l in gfr.line_array:
-    print(l, file=new_file)
-new_file.close()
-
-os.system("ls -l " + new_file_name)
-exit(0)
