@@ -25,7 +25,7 @@ class MatzMenu(object):
             print("%d %s" % (n, a_matched_line))
             n += 1
         try:
-            str_selection = raw_input(self.prompt)  # this one for console.
+            str_selection = input(self.prompt)  # this one for console.
             #str_selection = input(self.prompt)     # pycharm debugger likes this better.
             #print (">>", str_selection, "<<")
             if len(str_selection) == 0:
