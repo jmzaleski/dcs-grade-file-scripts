@@ -11,7 +11,7 @@ from menu import MatzMenu
 
 import sys,os, re,readline, argparse
 
-from complete import SimpleCompleter
+#from complete import SimpleCompleter
 
 def parse_positional_args():
     "parse the command line parameters of this program"
@@ -38,7 +38,7 @@ def read_utorids_from_cdf_class_list_file(fn):
         print("exception opening or reading", fn)
 
 def read_query_from_input(prompt):
-    "read a line from stdin"
+    "UI read a line from stdin"
     try:
         # readline will do completion on utorid's but can enter any string from grade file too
         query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
@@ -53,11 +53,10 @@ def read_query_from_input(prompt):
         print("..eof..")
         return None
 
-
-
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
-    Later we will use this object to retreive lines that match a given query.
+    Later we will use this object to retreive lines that match a given query and
+    append a new mark to the lines, and finally write them to a new grades file
     """
     def __init__(self, fn):
         self.grade_file_name = fn
@@ -67,6 +66,10 @@ class GradeFileReaderWriter(object):
         return
 
     def read_file(self):
+        """
+         reads the lines out of the grades file, including the header.
+        :return:
+        """
         try:
             with open(self.grade_file_name, 'rb') as grade_file:
                 grade_file = open(grade_file_name, 'rb')
@@ -78,7 +81,7 @@ class GradeFileReaderWriter(object):
                     ix += 1
                 grade_file.close()
         except:
-            print("failed to open", grade_file_name)
+            raise Exception("GradeFileReader fails to read " + self.grade_file_name)
 
     def matching_lines(self, query):
         "return lines that match the query"
@@ -114,7 +117,7 @@ class GradeFileReaderWriter(object):
 
 
 def select_a_student(gfr):
-    """"prompt user for query and narrow it down to one student in grade file.
+    """"UI: prompt user for query and narrow it down to one student in grade file.
     Returns a line, or None, which indicates user entered empty query or EOF, presumably to indicate they are finished"""
 
     while True:
@@ -144,28 +147,60 @@ def select_a_student(gfr):
     return None
 
 
+def set_up_readline(completion_list):
+    """UI: python hackery to configure readline do completion on an array"""
+
+    # Tell readline to use tab key for completion
+    # hack from stackoverflow. os/x python is a bit different because built atop BSD libedit
+    if 'libedit' in readline.__doc__:
+        readline.parse_and_bind("bind ^I rl_complete")
+    else:
+        readline.parse_and_bind("tab: complete")
+
+    # completer will be used by readline library when it sees a tab.
+    class SimpleCompleter(object):
+        """cribbed from python readline documentation"""
+        def __init__(self, options):
+            self.options = sorted(options)
+            return
+        def complete(self, text, state):
+            response = None
+            if state == 0:
+                # This is the first time for this text, so build a match list.
+                if text:
+                    self.matches = [s
+                                    for s in self.options
+                                    if s and s.startswith(text)]
+                    #logging.debug('%s matches: %s', repr(text), self.matches)
+                else:
+                    self.matches = self.options[:]
+                    #logging.debug('(empty input) matches: %s', self.matches)
+
+            # Return the state'th item from the match list,
+            # if we have that many.
+            try:
+                response = self.matches[state]
+            except IndexError:
+                response = None
+            #logging.debug('complete(%s, %s) => %s',
+            #              repr(text), state, repr(response))
+            return response
+
+    readline.set_completer(SimpleCompleter(completion_list).complete)
+
+################## real work ###########################
+
 (class_list_file_name, grade_file_name) =  parse_positional_args()
 
+# gfr, grade-file-reader instance
 gfr = GradeFileReaderWriter(grade_file_name)
 
-completion_options = read_utorids_from_cdf_class_list_file(class_list_file_name)
+completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
+set_up_readline(completion_list)
 
-#magic forces in the utorid's as completion options
-readline.set_completer(SimpleCompleter(completion_options).complete)
-
-# Tell readline to use tab key for completion
-# hack from stackoverflow. os/x python is a bit different because built atop BSD libedit
-if 'libedit' in readline.__doc__:
-    readline.parse_and_bind("bind ^I rl_complete")
-else:
-    readline.parse_and_bind("tab: complete")
-
-# want to prompt for something obvious by way of identifying data, name, utorid, student number, whatever
-# readline tab completion on utorid only..
-# if get nothing, just prompt again
-# if get multiples, prompt to resolve which hit
-# if get wrong single hit.. geeze, then what?
-# for the last name, just enter (empty line), that goes on to write new marks file
+# prompt for something obvious by way of identifying data, name, utorid, student number, whatever
+# readline tab completion on utorid only, so if entering utorid very efficient
+# however, will look for any regular expression in grades file too.
 
 try:
     while True:
