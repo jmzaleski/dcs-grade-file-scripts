@@ -18,7 +18,7 @@ class GradeFileReaderWriter(object):
         """
         try:
             with open(self.grade_file_name, 'rb') as grade_file:
-                grade_file = open(grade_file_name, 'rb')
+                grade_file = open(self.grade_file_name, 'rb')
                 ix = 0
                 for bline in grade_file:
                     line = bline.decode('UTF-8').rstrip('\n')
