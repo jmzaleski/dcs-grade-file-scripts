@@ -26,7 +26,7 @@ classifiers=[
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     ],
-      install_requires=['readline','csv','argparse'],
+      install_requires=['readline','argparse'],
 
     scripts=['record-mark-section.py'],
 )
