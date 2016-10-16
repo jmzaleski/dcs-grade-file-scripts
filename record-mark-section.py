@@ -193,7 +193,7 @@ def set_up_readline(cl):
 
     import logging
     LOG_FILENAME = '/tmp/completer.log'
-    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, ) #logging.DEBUG for verbosity
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR, ) #logging.DEBUG for verbosity
 
     # completer will be used by readline library when it sees a tab.
     # Hard to find a decent writeup of the protocol.
@@ -207,18 +207,14 @@ def set_up_readline(cl):
                 def __init__(self, cl, predicate):
                     self.completion_list = sorted(cl)
                     self.matches = []
-                    self.predicate = predicate
+                    self.predicate = predicate #function to select completions
                     return
                 def complete(self, text, state):
                     response = None
                     if state == 0:
                         # This is the first time for this text, so find the elements
                         # of the completion list that match text
-                        logging.debug("predicate=%s", self.predicate)
-                        logging.debug("text=%s", text)
-                        logging.debug("completion_list=%s", completion_list)
                         if text:
-                            logging.debug('predicate("foo", "foobar"))=%s', self.predicate("foo", "foobar"))
                             self.matches = [s
                                             for s in self.completion_list
                                             if s and self.predicate(text,s)] #s.startswith(text)]
@@ -232,14 +228,12 @@ def set_up_readline(cl):
                         response = self.matches[state]
                     except IndexError:
                         response = None
-                    logging.debug('complete(%s, %s) => %s',
-                                  repr(text), state, repr(response))
+                    logging.debug('complete(%s, %s) => %s', repr(text), state, repr(response))
                     return response
-            readline.set_completer(
-                SimpleCompleter(
-                    cl,
-                    lambda entered_text, cl_candidate: cl_candidate.startswith(entered_text)
-                ).complete)
+
+            # our completer should offer user utorid's that start with the text user enters
+            cl_predicate =  lambda entered_text, cl_candidate: cl_candidate.startswith(entered_text)
+            readline.set_completer( SimpleCompleter(cl, cl_predicate).complete)
     else:
         # ******** doesn't work **************
         # I'm obviously not understanding some subtle aspect of python closures.
