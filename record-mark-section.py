@@ -25,15 +25,15 @@ def read_utorids_from_cdf_class_list_file(fn):
     """assuming fn is a csv file, which CDF class lists are,
     read the file and return an array of the utorids"""
     import csv
-    completion_options = []
+    utorids = []
     try:
         with open(fn, 'r') as csv_file:
             csv_file_reader = csv.reader(csv_file, delimiter=',')
             for student_record in csv_file_reader:
                 # yuck. assuming first field of class file is torid
                 utorid = student_record[0]
-                completion_options.append(student_record[0])
-            return completion_options
+                utorids.append(student_record[0])
+            return utorids
     except:
         print("exception opening or reading", fn)
 
@@ -147,7 +147,7 @@ def select_a_student(gfr):
     return None
 
 
-def set_up_readline(completion_list):
+def set_up_readline(cl):
     """UI: python hackery to configure readline do completion on an array"""
 
     # Tell readline to use tab key for completion
@@ -157,36 +157,82 @@ def set_up_readline(completion_list):
     else:
         readline.parse_and_bind("tab: complete")
 
+    import logging
+    LOG_FILENAME = '/tmp/completer.log'
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, )
+
     # completer will be used by readline library when it sees a tab.
-    class SimpleCompleter(object):
-        """cribbed from python readline documentation"""
-        def __init__(self, options):
-            self.options = sorted(options)
-            return
-        def complete(self, text, state):
-            response = None
-            if state == 0:
-                # This is the first time for this text, so build a match list.
-                if text:
-                    self.matches = [s
-                                    for s in self.options
-                                    if s and s.startswith(text)]
-                    #logging.debug('%s matches: %s', repr(text), self.matches)
-                else:
-                    self.matches = self.options[:]
-                    #logging.debug('(empty input) matches: %s', self.matches)
+    # Hard to find a decent writeup of the protocol.
+    # Seems that when you hit tab on text it calls with state 0.
+    # this is when you're supposed to find the matches for text in completion_list
+    # Then, each time it calls with state 1,2, and we're supposed to return the corresponding completion
+    if True:
+            class SimpleCompleter(object):
+                """cribbed from python readline documentation"""
+                def __init__(self, cl):
+                    self.completion_list = sorted(cl)
+                    self.matches = []
+                    return
+                def complete(self, text, state):
+                    response = None
+                    if state == 0:
+                        # This is the first time for this text, so find the elements
+                        # of the completion list that match text
+                        if text:
+                            self.matches = [s
+                                            for s in self.completion_list
+                                            if s and s.startswith(text)]
+                            logging.debug('%s matches: %s', repr(text), self.matches)
+                        else:
+                            self.matches = self.completion_list[:]
+                            logging.debug('(empty input) matches: %s', self.matches)
 
-            # Return the state'th item from the match list,
-            # if we have that many.
-            try:
-                response = self.matches[state]
-            except IndexError:
+                    # Return the state'th item from the match list,
+                    try:
+                        response = self.matches[state]
+                    except IndexError:
+                        response = None
+                    logging.debug('complete(%s, %s) => %s',
+                                  repr(text), state, repr(response))
+                    return response
+            readline.set_completer(SimpleCompleter(cl).complete)
+    else:
+        # ******** doesn't work **************
+        # I'm obviously not understanding some subtle aspect of python closures.
+
+        matches_for_closure = []
+
+        # A completer instance will be used by readline library when it sees a tab.
+        # clue?? pycharm complains:
+        # This inspection detects names that should resolve but don't.
+        # Due to dynamic dispatch and duck typing, this is possible in a limited but useful number of cases.
+        # Top-level and class-level items are supported better than instance items.
+
+        def hack(saved_matches, cl): # i wanna closure over saved_matches and cl!
+            def complete(text, state):
+                logging.debug("complete(text=%s, state=%s)", text, state)
+                logging.debug("matches=%s)", saved_matches) #how come saved_matches unresolved?
+
                 response = None
-            #logging.debug('complete(%s, %s) => %s',
-            #              repr(text), state, repr(response))
-            return response
+                if state == 0:
+                    # This is the first time for this text, so build a match list.
+                    logging.debug("state == 0")
+                    if text:
+                        saved_matches = [s for s in cl if s and s.startswith(text)]
+                        logging.debug('%s matches: %s', repr(text), saved_matches)
+                    else:
+                        matches = cl[:]  # all possible completions
+                        logging.debug('(empty input) matches: %s', saved_matches)
 
-    readline.set_completer(SimpleCompleter(completion_list).complete)
+                # Return the state'th item from the match list,
+                try:
+                    response = saved_matches[state]
+                except IndexError:
+                    response = None
+                logging.debug('complete(%s, %s) => %s', repr(text), state, repr(response))
+                return response
+            readline.set_completer(complete)
+        hack(matches_for_closure, cl)
 
 ################## real work ###########################
 
