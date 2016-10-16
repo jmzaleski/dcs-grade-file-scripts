@@ -1,7 +1,8 @@
 
 def set_up_readline(cl):
     """UI: python hackery to configure readline do completion on an array"""
-
+    import readline
+    
     # Tell readline to use tab key for completion
     # hack from stackoverflow. os/x python is a bit different because built atop BSD libedit
     if 'libedit' in readline.__doc__:
