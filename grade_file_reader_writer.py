@@ -4,6 +4,7 @@ class GradeFileReaderWriter(object):
     Later we will use this object to retreive lines that match a given query and
     append a new mark to the lines, and finally write them to a new grades file
     """
+    import re
     def __init__(self, fn):
         self.grade_file_name = fn
         self.line_array = []
