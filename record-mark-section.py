@@ -10,7 +10,7 @@ from __future__ import print_function  #allows print as function
 
 import sys,os, re,readline, argparse
 
-#from complete import SimpleCompleter
+from menu import MatzMenu
 
 def parse_positional_args():
     "parse the command line parameters of this program"
@@ -35,104 +35,6 @@ def read_utorids_from_cdf_class_list_file(fn):
             return utorids
     except:
         print("exception opening or reading", fn)
-
-########## class to read and write grades file ### TODO: move to module
-class GradeFileReaderWriter(object):
-    """read a Jim Clarke style grades file and squirrel away the data for later.
-    Later we will use this object to retreive lines that match a given query and
-    append a new mark to the lines, and finally write them to a new grades file
-    """
-    def __init__(self, fn):
-        self.grade_file_name = fn
-        self.line_array = []
-        self.line_value_index = {}
-        self.read_file()
-        return
-
-    def read_file(self):
-        """
-         reads the lines out of the grades file, including the header.
-        :return:
-        """
-        try:
-            with open(self.grade_file_name, 'rb') as grade_file:
-                grade_file = open(grade_file_name, 'rb')
-                ix = 0
-                for bline in grade_file:
-                    line = bline.decode('UTF-8').rstrip('\n')
-                    self.line_array.append(line)
-                    self.line_value_index[line] = ix  # remember the spot in line_array..
-                    ix += 1
-                grade_file.close()
-        except:
-            raise Exception("GradeFileReader fails to read " + self.grade_file_name)
-
-    def matching_lines(self, query):
-        "return lines that match the query"
-        return [l for l in self.line_array if re.search(query,l)]
-
-    def append_mark_to_line(self,student_line,mark):
-        """append the mark, which may be a string or a number, to the right line.
-        Returns true if line is found and mark appended correctly, o/w False"""
-        if student_line in self.line_value_index:
-            ix = self.line_value_index[student_line]
-            before = self.line_array[ix]
-            after = before
-            if not after.endswith(","):
-                after += ","
-            after += str(mark)
-            self.line_array[ix] = after
-            print("line[", ix, "] <-", after)
-            return True
-        else:
-            #print(student_line, "not in", self.line_value_index)
-            return False
-
-    def print(self):
-        """debugging.. print the arrays"""
-        print("GradeFileReader.line_array", self.line_array)
-        print("GradeFileReader.line_value_array", self.line_value_index)
-
-    def write_to_new_grade_file(self,fn):
-        """write the modified lines out to a new file name"""
-        with open(fn,'w') as new_file:
-            for l in self.line_array:
-                print(l, file=new_file)
-
-########## class to post cheesy menus ### TODO: move to module
-class MatzMenu(object):
-    '''
-    UI: print a cheesy little menu. returns -1 if interrupt or goofy key entered.
-    '''
-    def __init__(self, menu_lines, prompt):
-        '''
-        Constructor
-        '''
-        self.menu_lines = menu_lines
-        self.prompt = prompt
-    # TODO: be nice to allow user to choose first char of line too.
-    def menu(self):
-        """UI: print the menu and use input to prompt user for choice"""
-        if len(self.menu_lines) == 1:
-            return 0
-        n = 0
-        for a_matched_line in self.menu_lines :
-            print("%d %s" % (n, a_matched_line))
-            n += 1
-        try:
-            str_selection = input(self.prompt)  # this one for console.
-            #str_selection = input(self.prompt)     # pycharm debugger likes this better.
-            #print (">>", str_selection, "<<")
-            if len(str_selection) == 0:
-                return 0 #just enter selects zero'th menu item
-            else:
-                return int(str_selection)
-        except KeyboardInterrupt:
-            #here if user types control-C (or whatever terminal key interrupts)
-            return -1
-        except:
-            print("interrupt.. prob invalid selection:", str_selection)
-            return -1
 
 def read_query_from_input(prompt):
     "UI read a line from stdin"
@@ -180,103 +82,13 @@ def select_a_student(gfr):
         assert False #never here
     return None
 
-########## method to make readline completion work ### TODO: move to module
-def set_up_readline(cl):
-    """UI: python hackery to configure readline do completion on an array"""
-
-    # Tell readline to use tab key for completion
-    # hack from stackoverflow. os/x python is a bit different because built atop BSD libedit
-    if 'libedit' in readline.__doc__:
-        readline.parse_and_bind("bind ^I rl_complete")
-    else:
-        readline.parse_and_bind("tab: complete")
-
-    import logging
-    LOG_FILENAME = '/tmp/completer.log'
-    logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR, ) #logging.DEBUG for verbosity
-
-    # completer will be used by readline library when it sees a tab.
-    # Hard to find a decent writeup of the protocol.
-    # Seems that when you hit tab on text it calls with state 0.
-    # this is when you're supposed to find the matches for text in completion_list
-    # Then, each time it calls with state 1,2, and we're supposed to return the corresponding completion
-    if True:
-
-            class SimpleCompleter(object):
-                """cribbed from python readline documentation"""
-                def __init__(self, cl, predicate):
-                    self.completion_list = sorted(cl)
-                    self.matches = []
-                    self.predicate = predicate #function to select completions
-                    return
-                def complete(self, text, state):
-                    response = None
-                    if state == 0:
-                        # This is the first time for this text, so find the elements
-                        # of the completion list that match text
-                        if text:
-                            self.matches = [s
-                                            for s in self.completion_list
-                                            if s and self.predicate(text,s)] #s.startswith(text)]
-                            logging.debug('%s matches: %s', repr(text), self.matches)
-                        else:
-                            self.matches = self.completion_list[:]
-                            logging.debug('(empty input) matches: %s', self.matches)
-
-                    # Return the state'th item from the match list,
-                    try:
-                        response = self.matches[state]
-                    except IndexError:
-                        response = None
-                    logging.debug('complete(%s, %s) => %s', repr(text), state, repr(response))
-                    return response
-
-            # our completer should offer user utorid's that start with the text user enters
-            cl_predicate =  lambda entered_text, cl_candidate: cl_candidate.startswith(entered_text)
-            readline.set_completer( SimpleCompleter(cl, cl_predicate).complete)
-    else:
-        # ******** doesn't work **************
-        # I'm obviously not understanding some subtle aspect of python closures.
-
-        matches_for_closure = []
-
-        # A completer instance will be used by readline library when it sees a tab.
-        # clue?? pycharm complains:
-        # This inspection detects names that should resolve but don't.
-        # Due to dynamic dispatch and duck typing, this is possible in a limited but useful number of cases.
-        # Top-level and class-level items are supported better than instance items.
-
-        def hack(saved_matches, cl): # i wanna closure over saved_matches and cl!
-            def complete(text, state):
-                logging.debug("complete(text=%s, state=%s)", text, state)
-                logging.debug("matches=%s)", saved_matches) #how come saved_matches unresolved?
-
-                response = None
-                if state == 0:
-                    # This is the first time for this text, so build a match list.
-                    logging.debug("state == 0")
-                    if text:
-                        saved_matches = [s for s in cl if s and s.startswith(text)]
-                        logging.debug('%s matches: %s', repr(text), saved_matches)
-                    else:
-                        matches = cl[:]  # all possible completions
-                        logging.debug('(empty input) matches: %s', saved_matches)
-
-                # Return the state'th item from the match list,
-                try:
-                    response = saved_matches[state]
-                except IndexError:
-                    response = None
-                logging.debug('complete(%s, %s) => %s', repr(text), state, repr(response))
-                return response
-            readline.set_completer(complete)
-        hack(matches_for_closure, cl)
+from set_up_readline_for_completion import set_up_readline
 
 ################## real work ###########################
 
 (class_list_file_name, grade_file_name) =  parse_positional_args()
 
-# gfr, grade-file-reader instance
+from grade_file_reader_writer import GradeFileReaderWriter
 gfr = GradeFileReaderWriter(grade_file_name)
 
 completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
