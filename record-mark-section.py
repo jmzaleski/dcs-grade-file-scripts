@@ -159,7 +159,7 @@ def set_up_readline(cl):
 
     import logging
     LOG_FILENAME = '/tmp/completer.log'
-    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, )
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR, )
 
     # completer will be used by readline library when it sees a tab.
     # Hard to find a decent writeup of the protocol.
