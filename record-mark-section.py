@@ -7,7 +7,6 @@
 knows how to handle my 2016 fall CDF empty grades files built from the new classlists that contain all sorts of useful data
 """
 from __future__ import print_function  #allows print as function
-from menu import MatzMenu
 
 import sys,os, re,readline, argparse
 
@@ -37,22 +36,7 @@ def read_utorids_from_cdf_class_list_file(fn):
     except:
         print("exception opening or reading", fn)
 
-def read_query_from_input(prompt):
-    "UI read a line from stdin"
-    try:
-        # readline will do completion on utorid's but can enter any string from grade file too
-        query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
-        if len(query_string) == 0:
-            return None
-        else:
-            return query_string
-    except KeyboardInterrupt:
-        print("..keyboard interrupt..")
-        return '' #empty string
-    except EOFError:
-        print("..eof..")
-        return None
-
+########## class to read and write grades file ### TODO: move to module
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
     Later we will use this object to retreive lines that match a given query and
@@ -115,6 +99,56 @@ class GradeFileReaderWriter(object):
             for l in self.line_array:
                 print(l, file=new_file)
 
+########## class to post cheesy menus ### TODO: move to module
+class MatzMenu(object):
+    '''
+    UI: print a cheesy little menu. returns -1 if interrupt or goofy key entered.
+    '''
+    def __init__(self, menu_lines, prompt):
+        '''
+        Constructor
+        '''
+        self.menu_lines = menu_lines
+        self.prompt = prompt
+    # TODO: be nice to allow user to choose first char of line too.
+    def menu(self):
+        """UI: print the menu and use input to prompt user for choice"""
+        if len(self.menu_lines) == 1:
+            return 0
+        n = 0
+        for a_matched_line in self.menu_lines :
+            print("%d %s" % (n, a_matched_line))
+            n += 1
+        try:
+            str_selection = input(self.prompt)  # this one for console.
+            #str_selection = input(self.prompt)     # pycharm debugger likes this better.
+            #print (">>", str_selection, "<<")
+            if len(str_selection) == 0:
+                return 0 #just enter selects zero'th menu item
+            else:
+                return int(str_selection)
+        except KeyboardInterrupt:
+            #here if user types control-C (or whatever terminal key interrupts)
+            return -1
+        except:
+            print("interrupt.. prob invalid selection:", str_selection)
+            return -1
+
+def read_query_from_input(prompt):
+    "UI read a line from stdin"
+    try:
+        # readline will do completion on utorid's but can enter any string from grade file too
+        query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        if len(query_string) == 0:
+            return None
+        else:
+            return query_string
+    except KeyboardInterrupt:
+        print("..keyboard interrupt..")
+        return '' #empty string
+    except EOFError:
+        print("..eof..")
+        return None
 
 def select_a_student(gfr):
     """"UI: prompt user for query and narrow it down to one student in grade file.
@@ -146,7 +180,7 @@ def select_a_student(gfr):
         assert False #never here
     return None
 
-
+########## method to make readline completion work ### TODO: move to module
 def set_up_readline(cl):
     """UI: python hackery to configure readline do completion on an array"""
 
@@ -159,7 +193,7 @@ def set_up_readline(cl):
 
     import logging
     LOG_FILENAME = '/tmp/completer.log'
-    logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR, )
+    logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG, ) #logging.DEBUG for verbosity
 
     # completer will be used by readline library when it sees a tab.
     # Hard to find a decent writeup of the protocol.
@@ -167,21 +201,27 @@ def set_up_readline(cl):
     # this is when you're supposed to find the matches for text in completion_list
     # Then, each time it calls with state 1,2, and we're supposed to return the corresponding completion
     if True:
+
             class SimpleCompleter(object):
                 """cribbed from python readline documentation"""
-                def __init__(self, cl):
+                def __init__(self, cl, predicate):
                     self.completion_list = sorted(cl)
                     self.matches = []
+                    self.predicate = predicate
                     return
                 def complete(self, text, state):
                     response = None
                     if state == 0:
                         # This is the first time for this text, so find the elements
                         # of the completion list that match text
+                        logging.debug("predicate=%s", self.predicate)
+                        logging.debug("text=%s", text)
+                        logging.debug("completion_list=%s", completion_list)
                         if text:
+                            logging.debug('predicate("foo", "foobar"))=%s', self.predicate("foo", "foobar"))
                             self.matches = [s
                                             for s in self.completion_list
-                                            if s and s.startswith(text)]
+                                            if s and self.predicate(text,s)] #s.startswith(text)]
                             logging.debug('%s matches: %s', repr(text), self.matches)
                         else:
                             self.matches = self.completion_list[:]
@@ -195,7 +235,11 @@ def set_up_readline(cl):
                     logging.debug('complete(%s, %s) => %s',
                                   repr(text), state, repr(response))
                     return response
-            readline.set_completer(SimpleCompleter(cl).complete)
+            readline.set_completer(
+                SimpleCompleter(
+                    cl,
+                    lambda entered_text, cl_candidate: cl_candidate.startswith(entered_text)
+                ).complete)
     else:
         # ******** doesn't work **************
         # I'm obviously not understanding some subtle aspect of python closures.
