@@ -1,3 +1,4 @@
+import re
 
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
@@ -32,7 +33,6 @@ class GradeFileReaderWriter(object):
 
     def matching_lines(self, query):
         "return lines that match the query"
-        import re
         return [l for l in self.line_array if re.search(query,l)]
 
     def append_mark_to_line(self,student_line,mark):
