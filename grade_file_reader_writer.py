@@ -22,11 +22,22 @@ class GradeFileReaderWriter(object):
             with open(self.grade_file_name, 'rb') as grade_file:
                 grade_file = open(self.grade_file_name, 'rb')
                 ix = 0
+                hdr = True
                 for bline in grade_file:
                     line = bline.decode('UTF-8').rstrip('\n')
+                    if len(line) == 0:
+                        hdr = False
                     self.line_array.append(line)
                     self.line_value_index[line] = ix  # remember the spot in line_array..
                     ix += 1
+                    if hdr:
+                        vals = line.split()
+                        print("line:", line)
+                        print("vals", vals)
+                        if vals[0].startswith("*"):
+                            print("comment", line)
+                        else:
+                            print("var", vals[0])
                 grade_file.close()
         except:
             raise Exception("GradeFileReader fails to read " + self.grade_file_name)
