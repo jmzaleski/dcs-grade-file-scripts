@@ -153,20 +153,31 @@ if __name__ == '__main__':
                 ta_files.append(os.path.join(rel_path,fn))
         files_per_ta[ta] = ta_files
 
-    for ta in tas:
-        print(ta, len(files_per_ta[ta]), files_per_ta[ta])
+    #for ta in tas:
+    #    print(ta, len(files_per_ta[ta]), files_per_ta[ta])
 
     from shutil import copy
-    dest_dir = "/tmp" #abspath?
+    dest_dir = "/tmp/a2r" #abspath?
+
+    os.makedirs(dest_dir)
     for ta in tas:
-        print(ta)
+        print(ta,": ",end='')
         ta_dir = os.path.join(dest_dir,ta)
         assert not os.path.isfile(ta_dir) #oh no a FILE exists where we want to mkdir
         if not os.path.isdir(ta_dir):
             os.makedirs(ta_dir)
         for fn in files_per_ta[ta]:
             src_path = os.path.join(parent_dir,fn)
+            print(fn,end='')
             copy(src_path, ta_dir)
+        print()
+        zip_cmd = "zip -r %s.zip %s" % (ta_dir, ta_dir)
+        print(zip_cmd)
+        junk = input("doit?")
+        #zip all the files in the ta_dir into ta_dir.zip
+        os.system(zip_cmd)
+        os.system("ls -ld %s.zip" % ta_dir)
+
 
 
 
