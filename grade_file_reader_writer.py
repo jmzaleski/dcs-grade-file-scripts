@@ -17,7 +17,6 @@ class GradeFileReaderWriter(object):
         self.field_number_of_mark_definition = {}
         self.separator = None #maybe should say tab or whatever default is in grade file
         self.students = []
-        self.read_file()
         return
 
     def read_file(self):
@@ -64,21 +63,31 @@ class GradeFileReaderWriter(object):
                 print(self.mark_definitions)
                 print(self.field_number_of_mark_definition)
 
-                #squirrel away rest of file
+                #squirrel away rest of file. any * before separator makes line a comment (not data)
+                check_dups = {}
                 for bline in grade_file:
                     line = bline.decode('UTF-8').rstrip('\n')
                     assert len(line) != 0
                     self.line_array.append(line)
                     self.line_value_index[line] = ix_line_number  # remember the spot in line_array..
                     vals = line.split(self.separator)
-                    ns = Namespace().init_names(self.mark_names)
-                    ix = 0
-                    #TODO: how would a cool kid do this?
-                    for name in self.mark_names:
-                        if ix < len(vals):
-                            ns.set(name,vals[ix])
-                        ix +=1
-                    self.students.append(ns)
+                    student_no = vals[0]
+                    #print(ix_line_number,student_no)
+                    if "*" in student_no:
+                        print("comment:",ix_line_number,line)
+                    else:
+                        if student_no in check_dups:
+                            print("illegal line because it has same student number as line", check_dups[student_no] )
+                            assert False
+                        check_dups[student_no] = ix_line_number
+                        ns = Namespace().init_names(self.mark_names)
+                        ix = 0
+                        #TODO: how would a cool kid do this?
+                        for name in self.mark_names:
+                            if ix < len(vals):
+                                ns.set(name,vals[ix])
+                            ix +=1
+                        self.students.append(ns)
                     ix_line_number += 1
 
                 grade_file.close()
@@ -122,10 +131,46 @@ class GradeFileReaderWriter(object):
                 print(l, file=new_file)
 
 if __name__ == '__main__':
+    import os
+    from os import system
+    from os import listdir
+    from os.path import isfile, join
+
     gfr = GradeFileReaderWriter("/tmp/CSC300H1F-empty").read_file()
     #list comprehensions considered powerful!
-    for ta in set([ns.ta for ns in gfr.students]):
-        print(ta,[ns.utorid for ns in gfr.students if ns.ta == ta])
+    parent_dir="/Users/mzaleski/Dropbox/CSC/300/submit/A2"
+    tas = set([ns.ta for ns in gfr.students])
+    files_per_ta = {}
+    for ta in tas:
+        ta_files = []
+        #assert len([ns.utorid for ns in gfr.students if ns.ta == ta]) == len(set([ns.utorid for ns in gfr.students if ns.ta == ta]))
+        for utorid in [ns.utorid for ns in gfr.students if ns.ta == ta]:
+            rel_path = utorid
+            dir = "%s/%s/" % (parent_dir, rel_path)
+            if not os.path.isdir(dir):
+                continue
+            for fn in [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]:
+                ta_files.append(os.path.join(rel_path,fn))
+        files_per_ta[ta] = ta_files
+
+    for ta in tas:
+        print(ta, len(files_per_ta[ta]), files_per_ta[ta])
+
+    from shutil import copy
+    dest_dir = "/tmp" #abspath?
+    for ta in tas:
+        print(ta)
+        ta_dir = os.path.join(dest_dir,ta)
+        assert not os.path.isfile(ta_dir) #oh no a FILE exists where we want to mkdir
+        if not os.path.isdir(ta_dir):
+            os.makedirs(ta_dir)
+        for fn in files_per_ta[ta]:
+            src_path = os.path.join(parent_dir,fn)
+            copy(src_path, ta_dir)
+
+
+
+
 
 
 
