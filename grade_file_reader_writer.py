@@ -272,6 +272,31 @@ def check_a2_a2r(ns, ns_a2r):
         exit(2)
 
 
+def check_remark(ns, fetch_mark_lambda, ns_a2r, fetch_remark_lambda):
+    if not ns:
+        print("predicate: ns is None, exit")
+        exit(2)
+    if not ns_a2r:
+        print("predicate: ns_a1r is None, exit")
+        exit(2)
+    try:
+        mark = fetch_mark_lambda(ns)
+        remark = fetch_remark_lambda(ns_a2r)
+        #print(ns.ta, ns.utorid, "gave mark=", mark, "remark=", remark)
+        if mark != remark:
+            if not mark:
+                return #not interested if a1 is none or zero
+            if float(mark) == 0.0:
+                return
+            if not remark or float(remark) < float(remark):
+                print(ns.ta, "gave mark=", mark, "remark=", remark, "for", ns.utorid)
+
+            # print(ns.a1, ns2.a1)
+    except:
+        print('exception:', ns, ns_a2r)
+        exit(2)
+
+
 def look_for_missing_marks(gfr_a1, gfr_a1r, callback):
     "find the PDF's for all the students in each TAs section and zip them into a separate zip file for each TA"
     from os.path import isfile, join
@@ -286,8 +311,31 @@ if __name__ == '__main__':
     from os import system
     from os import listdir
     #look_for_missing_marks(gfr_a1=GradeFileReaderWriter("/tmp/a1"), gfr_a1r=GradeFileReaderWriter("/tmp/a1r"), callback=check_a1_a1r)
+
     gfr_a2=GradeFileReaderWriter("/tmp/a2").read_file()
     gfr_a2r=GradeFileReaderWriter("/tmp/a2r").read_file()
-    for ns in gfr_a2.students:
-        #print(ns)
-        check_a2_a2r(ns, gfr_a2r.get_student_for_unique_utorid(ns.utorid))
+
+    #for ns in gfr_a2.student_generator(lambda ns: ns.ta == 'GARY'):
+    #    print(ns)
+
+
+def a1(ns):
+    "could just as easily be a lambda"
+    return ns.a1
+
+print("a1r")
+gfr_remark = GradeFileReaderWriter("/tmp/a1r").read_file()
+for ns in GradeFileReaderWriter("/tmp/a1").read_file().students:
+    check_remark(ns, a1, gfr_remark.get_student_for_unique_utorid(ns.utorid), a1)
+
+def a2(ns):
+    return ns.a2
+
+print("a2r")
+gfr_remark2 = GradeFileReaderWriter("/tmp/a2r").read_file()
+for ns in GradeFileReaderWriter("/tmp/a2").read_file().students:
+    # check_remark(ns, lambda ns: ns.a2, gfr_a2r.get_student_for_unique_utorid(ns.utorid), lambda ns: ns.a2)
+    check_remark(ns, a2, gfr_a2r.get_student_for_unique_utorid(ns.utorid), a2)
+
+
+
