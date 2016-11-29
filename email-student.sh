@@ -34,7 +34,7 @@ do
 		grep -i $i $CLASS
 		die $i matched more than one line.
 	else
-		grep -i $i $CLASS | cut -d\) -f2 >> $TMP
+		grep -i $i $CLASS | cut -d, -f6 >> $TMP
 	fi
 done
 
