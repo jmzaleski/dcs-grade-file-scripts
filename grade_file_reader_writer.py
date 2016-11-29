@@ -3,6 +3,7 @@ from Namespace import Namespace
 
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
+    See http://www.cdf.toronto.edu/~clarke/grade/fileformat.shtml
     Later we will use this object to retreive lines that match a given query and
     append a new mark to the lines, and finally write them to a new grades file
     """
@@ -41,7 +42,7 @@ class GradeFileReaderWriter(object):
     def read_file(self):
         """
          reads the lines out of the grades file, including the header.
-         See http://www.cdf.toronto.edu/~clarke/grade/fileformat.shtml
+
         :return:
         """
         try:
@@ -109,14 +110,17 @@ class GradeFileReaderWriter(object):
                     print(self.field_number_of_mark_definition)
 
                 #squirrel away rest of file. any * before separator makes line a comment (not data)
+
                 check_dups = {}
                 for bline in grade_file:
                     line = bline.decode('UTF-8').rstrip('\n')
                     assert len(line) != 0
                     self.line_array.append(line)
                     self.line_value_index[line] = ix_line_number  # remember the spot in line_array..
+                    #this is a crazy aspect to grade file. first field actually separated into flag (fields)
+                    #and
                     vals = line.split(self.separator)
-                    student_no = vals[0]
+                    student_no = vals[0] #student number and flags and perhaps name
                     #print(ix_line_number,student_no)
                     if "*" in student_no:
                         if False:
@@ -125,15 +129,23 @@ class GradeFileReaderWriter(object):
                         if student_no in check_dups:
                             print("illegal line because it has same student number as line", check_dups[student_no] )
                             assert False
-                        check_dups[student_no] = ix_line_number
-                        ns = Namespace().init_names(self.mark_names)
-                        ix = 0
-                        #TODO: how would a cool kid do this?
-                        for name in self.mark_names:
-                            if ix < len(vals):
-                                ns.set(name,vals[ix])
-                            ix +=1
-                        self.students.append(ns)
+                        # so first blank following student number is char before drop indicator (ughh)
+                        ix_first_blank = student_no.find(" ")
+                        ix_drop_indicator = ix_first_blank + 1
+                        is_drop = student_no[ix_drop_indicator] == 'd'
+                        if is_drop:
+                            if False:
+                                print("skipping dropout:",student_no)
+                        else:
+                            check_dups[student_no] = ix_line_number
+                            ns = Namespace().init_names(self.mark_names)
+                            ix = 0
+                            #TODO: how would a cool kid do this?
+                            for name in self.mark_names:
+                                if ix < len(vals):
+                                    ns.set(name,vals[ix])
+                                ix +=1
+                            self.students.append(ns)
                     ix_line_number += 1
 
                 grade_file.close()
@@ -177,10 +189,7 @@ class GradeFileReaderWriter(object):
                 print(l, file=new_file)
 
 if __name__ == 'xx__main__':
-    import os
-    from os import system
-    from os import listdir
-    import zip_assignments_for_ta from zip_assignments_for_ta
+    from zip_assignments_for_ta import zip_assignments_for_ta
 
     zip_assignments_for_ta(
         gfr=GradeFileReaderWriter("/tmp/CSC300H1F-empty"),
