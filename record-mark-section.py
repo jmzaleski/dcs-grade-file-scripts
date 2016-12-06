@@ -17,6 +17,7 @@ def parse_positional_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("class_list_file_name", help="name of CDF class list file")
     parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
+    #TODO: make output grade file the third parm. Can it be made optional somehow?
     args = parser.parse_args()
     return (args.class_list_file_name, args.grade_file_name)
 
@@ -58,7 +59,7 @@ def select_a_student(gfr):
 
     while True:
         query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
-        #query_string = "aranadic"
+        #query_string = "zhangb14"
         if query_string == None:
             return None
         elif len(query_string) == 0:
@@ -86,49 +87,49 @@ def select_a_student(gfr):
 from set_up_readline_for_completion import set_up_readline
 
 ################## real work ###########################
+if __name__ == '__main__':
+    (class_list_file_name, grade_file_name) =  parse_positional_args()
 
-(class_list_file_name, grade_file_name) =  parse_positional_args()
+    from grade_file_reader_writer import GradeFileReaderWriter
+    gfr = GradeFileReaderWriter(grade_file_name)
+    gfr.read_file()
 
-from grade_file_reader_writer import GradeFileReaderWriter
-gfr = GradeFileReaderWriter(grade_file_name)
-gfr.read_file()
+    completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
+    set_up_readline(completion_list)
 
-completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
-set_up_readline(completion_list)
+    # prompt for something obvious by way of identifying data, name, utorid, student number, whatever
+    # readline tab completion on utorid only, so if entering utorid very efficient
+    # however, will look for any regular expression in grades file too.
 
-# prompt for something obvious by way of identifying data, name, utorid, student number, whatever
-# readline tab completion on utorid only, so if entering utorid very efficient
-# however, will look for any regular expression in grades file too.
-
-try:
-    while True:
-        selected_student_line = select_a_student(gfr)
-        if selected_student_line == None:
-            break
-        else:
-            if not gfr.append_mark_to_line(selected_student_line,1):
-                print(selected_student_line, "not found.. have you changed it already this run?")
-except:
-    print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
-
-# carefully prompt for file name. keep trying until we write the data.
-# Really, really don't want to lose the typing that went on above!!
-while True:
     try:
-        new_file_name = input("write modified lines into file named:")
+        while True:
+            selected_student_line = select_a_student(gfr)
+            if selected_student_line == None:
+                break
+            else:
+                if not gfr.append_mark_to_line(selected_student_line,1):
+                    print(selected_student_line, "not found.. have you changed it already this run?")
+    except:
+        print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
+
+    # carefully prompt for file name. keep trying until we write the data.
+    # Really, really don't want to lose the typing that went on above!!
+    while True:
         try:
-            gfr.write_to_new_grade_file(new_file_name)
-        except:
-            print("exception happened opening ", new_file_name, "for writing or actually writing data")
+            new_file_name = input("write modified lines into file named:")
+            try:
+                gfr.write_to_new_grade_file(new_file_name)
+            except:
+                print("exception happened opening ", new_file_name, "for writing or actually writing data")
+                continue
+            os.system("ls -l " + new_file_name)
+            exit(0)
+
+        except EOFError:
+            print("..eof..okay then, really quit w/o saving..")
+            exit(2)
+
+        except KeyboardInterrupt:
+            print("really? caught that interupt but guessing you still want to save! EOF to quit")
             continue
-        os.system("ls -l " + new_file_name)
-        exit(0)
-
-    except EOFError:
-        print("..eof..okay then, really quit w/o saving..")
-        exit(2)
-
-    except KeyboardInterrupt:
-        print("really? caught that interupt but guessing you still want to save! EOF to quit")
-        continue
 
