@@ -10,8 +10,8 @@ class GradeFileReaderWriter(object):
 
     def __init__(self, fn):
         self.grade_file_name = fn
-        self.line_array = []
-        self.line_value_index = {}
+        self.line_array = []       #array of data lines in grade file
+        self.line_value_index = {} #dict keyed by text of line telling index of line in line_array
         #list of marks in order they were found in the grade file
         self.mark_names = ["student_no"]
         self.mark_definitions = {"student_no":None}
@@ -50,11 +50,11 @@ class GradeFileReaderWriter(object):
             with open(self.grade_file_name, 'rb') as grade_file:
                 grade_file = open(self.grade_file_name, 'rb')
                 #first three chars of file may set separator character for marks
-                first_line = grade_file.readline().decode('UTF-8')
+                first_line = grade_file.readline().decode('UTF-8').rstrip('\n')
                 self.line_array.append(first_line)
 
                 if first_line.startswith("*/"):
-                    assert len(first_line)>3
+                    assert len(first_line)>2
                     self.separator = first_line[2]
                     #print("found separator", self.separator)
 
@@ -63,11 +63,13 @@ class GradeFileReaderWriter(object):
                 ix_line_number = 1
                 for bline in grade_file: # examine header of file
                     line = bline.decode('UTF-8').rstrip('\n')
-                    if len(line) == 0:
-                        break #empty line ends header
-                        self.line_array.append(line)
-                        #self.line_value_index[line] = ix  # remember the spot in line_array..
+                    self.line_array.append(line)  # want to record empty line separating header too
+                    #self.line_value_index[line] = ix_line_number #don't record header or comment lines position
                     ix_line_number += 1
+
+                    if len(line) == 0:
+                        break  # empty line ends header
+
                     #look for comment char in line
                     ix_star = line.find("*")
                     if ix_star == 0:
@@ -165,6 +167,10 @@ class GradeFileReaderWriter(object):
         Returns true if line is found and mark appended correctly, o/w False"""
         if student_line in self.line_value_index:
             ix = self.line_value_index[student_line]
+            if ix >= len(self.line_array):
+                print ("omg:ix beyond array. something broken in script", ix)
+                print(self.line_array)
+                return False
             before = self.line_array[ix]
             after = before
             if not after.endswith(","):
@@ -183,7 +189,7 @@ class GradeFileReaderWriter(object):
         print("GradeFileReader.line_value_array", self.line_value_index)
 
     def write_to_new_grade_file(self,fn):
-        """write the modified lines out to a new file name"""
+        """write all lines out to a new file name"""
         with open(fn,'w') as new_file:
             for l in self.line_array:
                 print(l, file=new_file)
