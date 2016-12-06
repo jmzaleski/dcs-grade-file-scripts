@@ -58,6 +58,7 @@ def select_a_student(gfr):
 
     while True:
         query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        #query_string = "aranadic"
         if query_string == None:
             return None
         elif len(query_string) == 0:
@@ -90,6 +91,7 @@ from set_up_readline_for_completion import set_up_readline
 
 from grade_file_reader_writer import GradeFileReaderWriter
 gfr = GradeFileReaderWriter(grade_file_name)
+gfr.read_file()
 
 completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
 set_up_readline(completion_list)
