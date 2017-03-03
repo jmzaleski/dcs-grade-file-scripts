@@ -41,8 +41,19 @@ class GradeFileReaderWriter(object):
     def student_generator(self, predicate_lambda):
         return (ns for ns in self.students if predicate_lambda(ns))
     
+    def is_header_comment_line(self, line):
+        "return True if the line is nothing but comments?"
+        ix_star = line.find("*")
+        if ix_star == 0:
+            return True
+        elif ix_star <0:
+            ll = line
+        else:
+            ll = line.split("*")[0]
+            if len(ll.strip()) == 0:
+                return True
+    
     def read_header(self, grade_file):
-        ix_line_number = 0
         "read the header portion of the grades file, squirreling away mark definitions"
         #first three chars of file may set separator character for marks
         first_line = grade_file.readline().decode('UTF-8').rstrip('\n')
@@ -51,7 +62,6 @@ class GradeFileReaderWriter(object):
         if first_line.startswith("*/"):
             assert len(first_line)>2
             self.separator = first_line[2]
-            #print("found separator", self.separator)
 
         # scan lines in file header looking for mark defintions
         ix_mark_defn = 0
@@ -66,16 +76,11 @@ class GradeFileReaderWriter(object):
             if len(line) == 0:
                 return ix_line_number
                     #look for comment char in line
-            ix_star = line.find("*")
-            if ix_star == 0:
-                continue #comment line nothing to do
-            elif ix_star <0:
-                ll = line
-            else:
-                ll = line.split("*")[0]
-                if len(ll.strip()) == 0:
-                    continue #nothing to left of *
-            expr = ll.translate({ord(c): None for c in '\t '})
+
+            if self.is_header_comment_line(line):
+                continue
+            
+            expr = line.split('*')[0].translate({ord(c): None for c in '\t '})
             assert expr.find("*") < 0 #paranoidly check that comment rejection is right
 
             #eg:
@@ -116,7 +121,6 @@ class GradeFileReaderWriter(object):
     def read_file(self):
         """
          reads the lines out of the grades file, including the header.
-
         :return:
         """
         try:
