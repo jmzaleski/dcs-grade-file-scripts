@@ -53,12 +53,12 @@ class GradeFileReaderWriter(object):
             if len(ll.strip()) == 0:
                 return True
 
-    def parse_mark(self,expr):
-        "parse a mark defn (found in header)"
+    def parse_mark_defn(self,expr):
+        "parse a mark defn (found in header) to (name,rhs)"
         #TODO: make mark an object with type?
         if expr.find('/') >= 0:  # mark defintion
             return (expr.split('/')[0],expr.split('/')[1])
-            #TODO: make sure this is a number?
+            #TODO: make sure rhs is a number?
         elif expr.find('"')>=0: #string data definition
             return (expr.split('"')[0],'')
         elif expr.find("=")>=0: #a formula
@@ -67,6 +67,11 @@ class GradeFileReaderWriter(object):
             print('syntax error in expr', expr) #, "on line number", ix_line_number, line)
             assert False 
                     
+    def record_mark_defn(self, lhs, rhs):
+        self.mark_names.append(lhs)
+        self.mark_definitions[lhs] = rhs
+        self.field_number_of_mark_definition[lhs] = rhs
+        
     def read_header(self, grade_file):
         "read the header portion of the grades file, squirreling away mark definitions"
         #first three chars of file may set separator character for marks
@@ -96,11 +101,11 @@ class GradeFileReaderWriter(object):
             # or 
             # utorid "
             expr = line.split('*')[0].translate({ord(c): None for c in '\t '})
-            (mark_defn_name, mark_decl) = self.parse_mark(expr)
             
-            self.mark_names.append(mark_defn_name)
-            self.mark_definitions[mark_defn_name] = mark_decl
-            self.field_number_of_mark_definition[mark_defn_name] = ix_mark_defn
+            #TODO: try catch this
+            (mark_defn_name, mark_decl) = self.parse_mark_defn(expr)
+            self.record_mark_defn(mark_defn_name, mark_decl)
+
             ix_mark_defn += 1
 
         if False: #verbose
