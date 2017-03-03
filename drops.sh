@@ -9,6 +9,8 @@ test -d $GBIN || die no grades bin in $GBIN
 test ! -z "$1" || die usage: $0 marks file '#assumes classlist updated already, perhaps using new-classlist.sh'
 test -f $1 || die $0: $1 not a marks file
 
+set -x
+
 mf=$1
 
 test -f ./dot.sh || die cannot find ./dot.sh
@@ -22,7 +24,7 @@ test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
 #### assumes that the classlist has been updated already
 
 #this is where we we'll mangle marks file
-TMP_MF=/tmp/$mf$$
+TMP_MF=/tmp/$(basename $mf)$$
 
 TMP_CL=/tmp/cl$$
 #will cut student numbers out of class list and put them in file of their own. hence in column 0
@@ -37,7 +39,6 @@ CMD="$GBIN/gupdatedrops -c 0 -L $TMP_CL"
 
 #this sets the drop column for gonzo students
 
-set -x
 $CMD $TMP_MF || die "failed to run $CMD $TMP_MF"
 
 diff $mf $TMP_MF
