@@ -1,2 +1,7 @@
 *.pyc
 *.*~*
+/.idea/bin.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/workspace.xml
+/#record-mark-section.py#
