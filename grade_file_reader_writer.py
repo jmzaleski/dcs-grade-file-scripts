@@ -40,6 +40,78 @@ class GradeFileReaderWriter(object):
 
     def student_generator(self, predicate_lambda):
         return (ns for ns in self.students if predicate_lambda(ns))
+    
+    def read_header(self, grade_file):
+        ix_line_number = 0
+        "read the header portion of the grades file, squirreling away mark definitions"
+        #first three chars of file may set separator character for marks
+        first_line = grade_file.readline().decode('UTF-8').rstrip('\n')
+        self.line_array.append(first_line)
+
+        if first_line.startswith("*/"):
+            assert len(first_line)>2
+            self.separator = first_line[2]
+            #print("found separator", self.separator)
+
+        # scan lines in file header looking for mark defintions
+        ix_mark_defn = 0
+        ix_line_number = 1
+        for bline in grade_file: # examine header of file
+            lline = bline.decode('UTF-8').rstrip('\n')
+            line = str(lline) # TODO: how would cool kid do this?
+            self.line_array.append(line)  # want to record empty line separating header too
+            #self.line_value_index[line] = ix_line_number #don't record header or comment lines position
+            ix_line_number += 1
+
+            if len(line) == 0:
+                return ix_line_number
+                    #look for comment char in line
+            ix_star = line.find("*")
+            if ix_star == 0:
+                continue #comment line nothing to do
+            elif ix_star <0:
+                ll = line
+            else:
+                ll = line.split("*")[0]
+                if len(ll.strip()) == 0:
+                    continue #nothing to left of *
+            expr = ll.translate({ord(c): None for c in '\t '})
+            assert expr.find("*") < 0 #paranoidly check that comment rejection is right
+
+            #eg:
+            # a1 / 10
+            # utorid "
+
+            assert expr.find('*') <0 #no comment without any whitespace (?)
+
+            #TODO: make mark an object with type?
+            if expr.find('/') >= 0:  # mark defintion
+                mark_defn_name = expr.split('/')[0]
+                mark_decl = expr.split('/')[1]         #out of
+                #TODO: make sure this is a number?
+            elif expr.find('"')>=0: #string data definition
+                mark_defn_name = expr.split('"')[0]
+                mark_decl = '"'
+            elif expr.find("=")>=0: #a formula
+                mark_defn_name = expr.split("=")[0]
+                mark_defn_name = expr.split("=")[1]
+            else:
+                print('syntax error in expr', expr, "on line number", ix_line_number, line)
+                assert False #ohoh expression must either be a mark / nn or a string "
+            #print(mark_defn_name, mark_decl)
+
+            self.mark_names.append(mark_defn_name)
+            self.mark_definitions[mark_defn_name] = mark_decl
+            self.field_number_of_mark_definition[mark_defn_name] = ix_mark_defn
+            ix_mark_defn += 1
+
+        if False: #verbose
+            print(self.mark_names)
+            print(self.mark_definitions)
+            print(self.field_number_of_mark_definition)
+                                
+        raise "ohoh no blank line at end of header"
+        
 
     def read_file(self):
         """
@@ -51,72 +123,7 @@ class GradeFileReaderWriter(object):
             #open read binary so as to not mess up the line endings and whatnot
             with open(self.grade_file_name, 'rb') as grade_file:
                 grade_file = open(self.grade_file_name, 'rb')
-                #first three chars of file may set separator character for marks
-                first_line = grade_file.readline().decode('UTF-8').rstrip('\n')
-                self.line_array.append(first_line)
-
-                if first_line.startswith("*/"):
-                    assert len(first_line)>2
-                    self.separator = first_line[2]
-                    #print("found separator", self.separator)
-
-                # scan lines in file header looking for mark defintions
-                ix_mark_defn = 0
-                ix_line_number = 1
-                for bline in grade_file: # examine header of file
-                    lline = bline.decode('UTF-8').rstrip('\n')
-                    line = str(lline) # TODO: how would cool kid do this?
-                    self.line_array.append(line)  # want to record empty line separating header too
-                    #self.line_value_index[line] = ix_line_number #don't record header or comment lines position
-                    ix_line_number += 1
-
-                    if len(line) == 0:
-                        break  # empty line ends header
-
-                    #look for comment char in line
-                    ix_star = line.find("*")
-                    if ix_star == 0:
-                        continue #comment line nothing to do
-                    elif ix_star <0:
-                        ll = line
-                    else:
-                        ll = line.split("*")[0]
-                        if len(ll.strip()) == 0:
-                            continue #nothing to left of *
-                    expr = ll.translate({ord(c): None for c in '\t '})
-                    assert expr.find("*") < 0 #paranoidly check that comment rejection is right
-
-                    #eg:
-                    # a1 / 10
-                    # utorid "
-
-                    assert expr.find('*') <0 #no comment without any whitespace (?)
-
-                    #TODO: make mark an object with type?
-                    if expr.find('/') >= 0:  # mark defintion
-                        mark_defn_name = expr.split('/')[0]
-                        mark_decl = expr.split('/')[1]         #out of
-                        #TODO: make sure this is a number?
-                    elif expr.find('"')>=0: #string data definition
-                        mark_defn_name = expr.split('"')[0]
-                        mark_decl = '"'
-                    elif expr.find("=")>=0: #a formula
-                        mark_defn_name = expr.split("=")[0]
-                        mark_defn_name = expr.split("=")[1]
-                    else:
-                        print('syntax error in expr', expr, "on line number", ix_line_number, line)
-                        assert False #ohoh expression must either be a mark / nn or a string "
-                    #print(mark_defn_name, mark_decl)
-
-                    self.mark_names.append(mark_defn_name)
-                    self.mark_definitions[mark_defn_name] = mark_decl
-                    self.field_number_of_mark_definition[mark_defn_name] = ix_mark_defn
-                    ix_mark_defn += 1
-
-                if False: #verbose
-                    print(self.mark_names)
-                    print(self.mark_definitions)
-                    print(self.field_number_of_mark_definition)
+                ix_line_number = self.read_header(grade_file)
 
                 #squirrel away rest of file. any * before separator makes line a comment (not data)
 
