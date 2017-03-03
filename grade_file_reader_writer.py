@@ -1,3 +1,5 @@
+from __future__ import print_function  #allows print as function
+
 import re
 from Namespace import Namespace
 
@@ -62,7 +64,8 @@ class GradeFileReaderWriter(object):
                 ix_mark_defn = 0
                 ix_line_number = 1
                 for bline in grade_file: # examine header of file
-                    line = bline.decode('UTF-8').rstrip('\n')
+                    lline = bline.decode('UTF-8').rstrip('\n')
+                    line = str(lline) # TODO: how would cool kid do this?
                     self.line_array.append(line)  # want to record empty line separating header too
                     #self.line_value_index[line] = ix_line_number #don't record header or comment lines position
                     ix_line_number += 1
@@ -97,7 +100,11 @@ class GradeFileReaderWriter(object):
                     elif expr.find('"')>=0: #string data definition
                         mark_defn_name = expr.split('"')[0]
                         mark_decl = '"'
+                    elif expr.find("=")>=0: #a formula
+                        mark_defn_name = expr.split("=")[0]
+                        mark_defn_name = expr.split("=")[1]
                     else:
+                        print('syntax error in expr', expr, "on line number", ix_line_number, line)
                         assert False #ohoh expression must either be a mark / nn or a string "
                     #print(mark_defn_name, mark_decl)
 
@@ -161,6 +168,11 @@ class GradeFileReaderWriter(object):
     def matching_lines(self, query):
         "return lines that match the query"
         return [l for l in self.line_array if re.search(query,l)]
+    
+    def matching_lines_ignore_case(self, query):
+        "return lines that match the query"
+        lquery = query.lower()
+        return [l for l in self.line_array if re.search(lquery,l.lower())]
 
     def append_mark_to_line(self,student_line,mark):
         """append the mark, which may be a string or a number, to the right line.
@@ -194,14 +206,6 @@ class GradeFileReaderWriter(object):
             for l in self.line_array:
                 print(l, file=new_file)
 
-if __name__ == 'xx__main__':
-    from zip_assignments_for_ta import zip_assignments_for_ta
-
-    zip_assignments_for_ta(
-        gfr=GradeFileReaderWriter("/tmp/CSC300H1F-empty"),
-        markus_download_dir="/Users/mzaleski/Dropbox/CSC/300/submit/A2r",
-        dest_dir = "/tmp/a2r")
-
 
 def check_remark(ns, fetch_mark_lambda, ns_a2r):
     "look for missing marks amongst the remarks"
@@ -228,7 +232,7 @@ def check_remark(ns, fetch_mark_lambda, ns_a2r):
         print('exception:', ns, ns_a2r)
         exit(2)
 
-if __name__ == '__main__':
+if __name__ == 'xx__main__':
     print("a1r")
     gfr_remark = GradeFileReaderWriter("/tmp/a1r").read_file()
     for ns in GradeFileReaderWriter("/tmp/a1").read_file().students:
@@ -240,4 +244,10 @@ if __name__ == '__main__':
         check_remark(ns, lambda ns: ns.a2, gfr_remark2.get_student_for_unique_utorid(ns.utorid))
 
 
+if __name__ == '__main__':
+    from zip_assignments_for_ta import zip_assignments_for_ta
 
+    zip_assignments_for_ta(
+        gfr=GradeFileReaderWriter("/tmp/CSC300H1F-empty"),
+        markus_download_dir="/Users/mzaleski/Dropbox/CSC/300/submit/A4",
+        dest_dir = "/tmp/a4")
