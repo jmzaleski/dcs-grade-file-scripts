@@ -52,7 +52,21 @@ class GradeFileReaderWriter(object):
             ll = line.split("*")[0]
             if len(ll.strip()) == 0:
                 return True
-    
+
+    def parse_mark(self,expr):
+        "parse a mark defn (found in header)"
+        #TODO: make mark an object with type?
+        if expr.find('/') >= 0:  # mark defintion
+            return (expr.split('/')[0],expr.split('/')[1])
+            #TODO: make sure this is a number?
+        elif expr.find('"')>=0: #string data definition
+            return (expr.split('"')[0],'')
+        elif expr.find("=")>=0: #a formula
+            return (expr.split('=')[0],expr.split('=')[1])
+        else:
+            print('syntax error in expr', expr) #, "on line number", ix_line_number, line)
+            assert False 
+                    
     def read_header(self, grade_file):
         "read the header portion of the grades file, squirreling away mark definitions"
         #first three chars of file may set separator character for marks
@@ -70,41 +84,20 @@ class GradeFileReaderWriter(object):
             lline = bline.decode('UTF-8').rstrip('\n')
             line = str(lline) # TODO: how would cool kid do this?
             self.line_array.append(line)  # want to record empty line separating header too
-            #self.line_value_index[line] = ix_line_number #don't record header or comment lines position
             ix_line_number += 1
 
             if len(line) == 0:
                 return ix_line_number
-                    #look for comment char in line
 
             if self.is_header_comment_line(line):
                 continue
-            
-            expr = line.split('*')[0].translate({ord(c): None for c in '\t '})
-            assert expr.find("*") < 0 #paranoidly check that comment rejection is right
 
-            #eg:
-            # a1 / 10
+            #comments gonzo. expr is something like a1/10
+            # or 
             # utorid "
-
-            assert expr.find('*') <0 #no comment without any whitespace (?)
-
-            #TODO: make mark an object with type?
-            if expr.find('/') >= 0:  # mark defintion
-                mark_defn_name = expr.split('/')[0]
-                mark_decl = expr.split('/')[1]         #out of
-                #TODO: make sure this is a number?
-            elif expr.find('"')>=0: #string data definition
-                mark_defn_name = expr.split('"')[0]
-                mark_decl = '"'
-            elif expr.find("=")>=0: #a formula
-                mark_defn_name = expr.split("=")[0]
-                mark_defn_name = expr.split("=")[1]
-            else:
-                print('syntax error in expr', expr, "on line number", ix_line_number, line)
-                assert False #ohoh expression must either be a mark / nn or a string "
-            #print(mark_defn_name, mark_decl)
-
+            expr = line.split('*')[0].translate({ord(c): None for c in '\t '})
+            (mark_defn_name, mark_decl) = self.parse_mark(expr)
+            
             self.mark_names.append(mark_defn_name)
             self.mark_definitions[mark_defn_name] = mark_decl
             self.field_number_of_mark_definition[mark_defn_name] = ix_mark_defn
