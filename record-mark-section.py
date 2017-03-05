@@ -41,7 +41,8 @@ def read_query_from_input(prompt):
     "UI read a line from stdin"
     try:
         # readline will do completion on utorid's but can enter any string from grade file too
-        query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        #query_string = input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
+        query_string = input(prompt)
         if len(query_string) == 0:
             return None
         else:
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     (class_list_file_name, grade_file_name) =  parse_positional_args()
 
     from grade_file_reader_writer import GradeFileReaderWriter
-    gfr = GradeFileReaderWriter(grade_file_name)
+    gfr = GradeFileReaderWriter(open(grade_file_name).read())
     gfr.read_file()
 
     completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
@@ -107,7 +108,8 @@ if __name__ == '__main__':
             if selected_student_line == None:
                 break
             else:
-                if not gfr.append_mark_to_line(selected_student_line,1):
+                mark = read_query_from_input("grade:")
+                if not gfr.append_mark_to_line(selected_student_line,mark):
                     print(selected_student_line, "not found.. have you changed it already this run?")
     except:
         print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
