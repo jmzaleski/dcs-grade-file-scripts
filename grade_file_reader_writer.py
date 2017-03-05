@@ -3,6 +3,7 @@ from __future__ import print_function  #allows print as function
 import re
 from Namespace import Namespace
 import matz_utils
+import ast
 
 class GradeFileReaderWriter(object):
     """read a Jim Clarke style grades file and squirrel away the data for later.
@@ -11,19 +12,28 @@ class GradeFileReaderWriter(object):
     append a new mark to the lines, and finally write them to a new grades file
     """
 
-    def __init__(self, fn,debug=False):
+    def __init__(self, contents_of_grade_file,debug=False):
         self.msg = matz_utils.MessagePrinter(debug) 
 
-        self.grade_file_name = fn
         self.line_array = []       #array of data lines in grade file
         self.line_value_index = {} #dict keyed by text of line telling index of line in line_array
         #list of marks in order they were found in the grade file
         self.mark_names = ["student_no"]
         self.mark_definitions = {"student_no":None}
+        self.field_is_num = {}
         self.field_number_of_mark_definition = {}
+        self.mark_definition_of_field_number = {}
+        self.field_number_of_mark_definition["student_no"] = 0
+        self.field_is_num["student_no"] = False
+        self.mark_definition_of_field_number[0] = "student_no"
         self.separator = None #maybe should say tab or whatever default is in grade file
         self.students = []
-        self.buf = open(self.grade_file_name).read()
+        self.contents_of_grade_file = contents_of_grade_file
+        if self.contents_of_grade_file.find("\n") < 0:
+            #old usage was to pass a file name. this should flag those..
+            error_message = "grade file contents seem implausible.. do not contain a newline"
+            self.msg.error(error_message)
+            raise Exception(error_message)
         return
 
     def get_student_for_unique_utorid(self,utorid):
@@ -58,24 +68,27 @@ class GradeFileReaderWriter(object):
                 return True
 
     def parse_mark_defn(self,expr):
-        "parse a mark defn (found in header) to (name,rhs)"
+        "parse a mark defn (found in header) to (name,rhs,is_num)"
         if expr.find('/') >= 0:  # mark defintion
             tokens = expr.split('/') # mark out of rhs
+            t = ast.literal_eval(tokens[1]) #use python ast helper to determine if RHS is a number
             probe = int(tokens[1])
-            return (tokens[0],str(probe))
+            return (tokens[0],probe,type(t) is int or type(t) is float)
         elif expr.find('"')>=0: #string data definition
-            return (expr.split('"')[0],'')
+            return (expr.split('"')[0],'',False)
         elif expr.find("=")>=0: #a formula
             tokens = expr.split('=')
-            return (tokens[0],tokens[1])
+            return (tokens[0],tokens[1],True)
         else:
             print('syntax error in expr', expr) 
             raise Exception(expr)
                     
-    def record_mark_defn(self, lhs, rhs):
+    def record_mark_defn(self, field_number, lhs, rhs, is_num):
         self.mark_names.append(lhs)
         self.mark_definitions[lhs] = rhs
-        self.field_number_of_mark_definition[lhs] = rhs
+        self.field_number_of_mark_definition[lhs] = field_number
+        self.mark_definition_of_field_number[field_number] = lhs
+        self.field_is_num[lhs] = is_num
         self.msg.debug("have mark:", lhs, rhs)
 
         
@@ -96,10 +109,8 @@ class GradeFileReaderWriter(object):
         # scan lines in file header looking for mark defintions
         ix_mark_defn = 0
         ix_line_number = 1
-        for bline in grade_file: # examine header of file
-            #lline = bline.decode('UTF-8').rstrip('\n')
-            lline = bline
-            line = str(lline) # TODO: how would cool kid do this?
+        field_number = 1 #because student number field is 0
+        for line in grade_file: # examine header of file
             self.msg.debug("header line:", line)
             self.line_array.append(line)  # want to record empty line separating header too
             ix_line_number += 1
@@ -112,10 +123,11 @@ class GradeFileReaderWriter(object):
             left_of_comment = line.split('*')[0]
             expr = left_of_comment.translate({ord(c): None for c in '\t '})
             try:
-                (mark_defn_name, mark_decl) = self.parse_mark_defn(expr)
-                self.record_mark_defn(mark_defn_name, mark_decl)
+                (mark_defn_name, mark_decl, is_num) = self.parse_mark_defn(expr)
+                self.record_mark_defn(field_number,mark_defn_name, mark_decl, is_num)
+                field_number+=1
             except:
-                msg = "GradeFileReaderWriter header line syntax error\n" + line + "\n" + self.grade_file_name + ":" + ix_line_number
+                msg = "GradeFileReaderWriter header line syntax error\n" + line + "\n" + ":" + ix_line_number
                 self.msg.debug(msg)             
                 raise Exception(msg)
             ix_mark_defn += 1
@@ -135,11 +147,8 @@ class GradeFileReaderWriter(object):
         """
         try:
             #open read binary so as to not mess up the line endings and whatnot
-            self.msg.debug("about to open grade file ",self.grade_file_name)
-            #with open(self.grade_file_name, 'rb') as grade_file:
-            #grade_file = open(self.grade_file_name, 'rb')
             if True:
-                grade_file = iter(self.buf.splitlines()) #garghh
+                grade_file = iter(self.contents_of_grade_file.splitlines()) #garghh
                 
                 ix_line_number = self.read_header(grade_file)
 
@@ -155,11 +164,10 @@ class GradeFileReaderWriter(object):
                     #this is a crazy aspect to grade file. first field actually separated into flag (fields)
                     #and
                     vals = line.split(self.separator)
-                    student_no = vals[0] #student number and flags and perhaps name
+                    student_no = vals[0] #student number and flags and perhaps lhs
                     #print(ix_line_number,student_no)
                     if "*" in student_no:
-                        if False:
-                            print("comment:",ix_line_number,line)
+                        self.msg.debug("comment:",ix_line_number,line)
                     else:
                         if student_no in check_dups:
                             print("illegal line because it has same student number as line", check_dups[student_no] )
@@ -176,9 +184,16 @@ class GradeFileReaderWriter(object):
                             ns = Namespace().init_names(self.mark_names)
                             ix = 0
                             #TODO: how would a cool kid do this?
-                            for name in self.mark_names:
+                            for lhs in self.mark_names:
                                 if ix < len(vals):
-                                    ns.set(name,vals[ix])
+                                    if self.field_is_num[lhs]:
+                                        #what to do if value is missing?? zero? None?
+                                        if len(vals[ix])==0:
+                                            ns.set(lhs,None)
+                                        else:
+                                            ns.set(lhs,float(vals[ix]))
+                                    else:
+                                        ns.set(lhs,vals[ix])
                                 ix +=1
                             self.students.append(ns)
                     ix_line_number += 1
@@ -186,7 +201,7 @@ class GradeFileReaderWriter(object):
                 #grade_file.close()
                 return self
         except:
-            raise Exception("GradeFileReader fails to read " + self.grade_file_name)
+            raise Exception("GradeFileReaderWriter fails to parse grade file" )
 
         return self
 
