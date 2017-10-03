@@ -59,8 +59,8 @@ def select_a_student(gfr):
     Returns a line, or None, which indicates user entered empty query or EOF, presumably to indicate they are finished"""
 
     while True:
-        query_string = read_query_from_input("identifying string (tab completes on utorid, EOF or empy line to quit): ")
-        #query_string = "zhangb14"
+        query_string = read_query_from_input("student id (tab completes on utorid, EOF, empy line to finish): ")
+        #print(query_string)
         if query_string == None:
             return None
         elif len(query_string) == 0:
@@ -82,7 +82,6 @@ def select_a_student(gfr):
                 continue #didn't like choices.. try again
             else:
                 return user_choice  # yup, this is the oen
-        assert False #never here
     return None
 
 from set_up_readline_for_completion import set_up_readline
@@ -107,10 +106,20 @@ if __name__ == '__main__':
             selected_student_line = select_a_student(gfr)
             if selected_student_line == None:
                 break
+            #print(selected_student_line)
+            if True:
+                mark = 1
             else:
-                mark = read_query_from_input("grade:")
-                if not gfr.append_mark_to_line(selected_student_line,mark):
-                    print(selected_student_line, "not found.. have you changed it already this run?")
+                mark = read_query_from_input("mark:")
+                print("`%s'" % (mark))
+                #probably want to make empty string full marks or whatever most common entry is
+            try:
+                appendage = "%s" % (int(mark))
+                #print(appendage)
+                if not gfr.append_mark_to_line(selected_student_line,appendage):
+                    print(selected_student_line, "not found.. have you changed student record already this run?")
+            except:
+                print("threw when adding together marks or adding them")
     except:
         print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
 
