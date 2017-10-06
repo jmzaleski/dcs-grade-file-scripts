@@ -11,9 +11,9 @@ class DdahAllocation:
     def __init__(self,duty_description,duty_type,quantity,durationInMinutes):
         self.id = DdahAllocation.ID
         DdahAllocation.ID +=1
-        self.duty_description = duty_description            #eg grade a1
-        self.duty_type = duty_type  #eg Marking
-        self.quantity = quantity    #31
+        self.duty_description = duty_description            #eg "grade a1"
+        self.duty_type = duty_type                          #eg Marking
+        self.quantity = quantity                            #31 (students in TA's section)
         self.duration_in_minutes = durationInMinutes
 
     def __str__(self):
@@ -21,15 +21,13 @@ class DdahAllocation:
                                                     self.duty_description,self.duration_in_minutes,
                                                     float(self.quantity * self.duration_in_minutes / 60.0))
 
-
-
 class Ddah:
     "Description of Duties and Hockey for a single student"
     def __init__(self, name, utorid, total_hours, category,allocations):
         self.name = name
         self.utorid = utorid
         self.total_hours = total_hours
-        self.category = category
+        self.category = category   #training category? eg: meeting with supervisor?
         self.allocations = allocations #list of DdahAllocation instances
 
     def totalMin(self):
@@ -59,7 +57,7 @@ class ReadInstructorDdahCSV:
         self.FN = file_name
         self.duty_descriptions = [] #row on the form giving the "type of allocation"
         self.rows = [] #row        #raw rows describing each TA
-        self.duty_categories = []
+        self.duty_types = []
         #maps the strings the instructors were asked to describe kind of duty
         #to the letters the DDAH importer needs to see.
         self.DUTY_TO_MM = { #short for michelle map :)
@@ -94,7 +92,7 @@ class ReadInstructorDdahCSV:
                     continue #just skip the damn empty lines
                 if first_line:
                     assert(row[0] == '')
-                    self.duty_categories = row[4:]
+                    self.duty_types = row[4:]
                     first_line = False
                     continue
                 self.rows += [row]  #name, utorid, total_hours then estimate in hours
@@ -106,26 +104,21 @@ class ReadInstructorDdahCSV:
             ta_name = r[0]
             ta_utorid = r[1]
             total_hours = float(r[2])
-            tutorial_category = r[3] #nb unset for 369
+            training_category = r[3] #nb unset for 369
             #rest of row contains estimates of how long duties will take
             estimated_hours = r[4:]
 
             # create an allocation for each duty for which an time estimate is found
             allocations = []
-            for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_categories):
+            for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_types):
                 if len(hour) == 0:
-                    continue
+                    continue #skip pesky blank lines in instructor CSV files
                 a = DdahAllocation(duty_description, duty_cat, 1.0, float(hour) * 60.0)
-                if self.VERBOSE:
-                    print("hours:",hour, "desc:", duty_description, "category:", duty_cat, "mmcat:", self.DUTY_TO_MM[duty_cat])
-                    print(a)
+                if self.VERBOSE: print(a)
                 allocations.append(a)
-            ddah = Ddah(ta_name, ta_utorid, total_hours, tutorial_category, allocations)
-            if self.VERBOSE:
-                print(ddah)
+            ddah = Ddah(ta_name, ta_utorid, total_hours, training_category, allocations)
+            if self.VERBOSE: print(ddah)
             ddahList.append( ddah)
-        if self.VERBOSE:
-            print(ddahList)
         return ddahList
 
     def writeTappDdahCSV(self,ddahList,ofn):
@@ -155,12 +148,12 @@ class ReadInstructorDdahCSV:
                     ddah_csv_writer.writerow(row)
 
     def __str__(self):
-        "fixme"
+        str(self.DUTY_TO_MM) + str(self.duty_descriptions) + str(self.duty_types) + str(self.rows)
 
     def dump(self):
         print(self.DUTY_TO_MM)
         print(self.duty_descriptions)
-        print(self.duty_categories)
+        print(self.duty_types)
         print('--- data ---');
         for r in self.rows:
             print(r)
