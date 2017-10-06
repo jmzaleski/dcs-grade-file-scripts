@@ -32,6 +32,16 @@ class Ddah:
         self.category = category
         self.allocations = allocations #list of DdahAllocation instances
 
+    def totalMin(self):
+        "add up minutes estimated for all allocations"
+        total = 0.0
+        for a in self.allocations:
+            total += (a.quantity * a.duration_in_minutes)
+        return total
+
+    def totalHours(self):
+        return self.totalMin() / 60.0
+
     def __str__(self):
         s = "TA_name=%s utorid=%s total_hours=%5.2f tutorial_category=%s" % (self.name, self.utorid, self.total_hours, self.category)
         for a in self.allocations:
@@ -60,16 +70,7 @@ class ReadInstructorDdahCSV:
             'Contact Time': 'D',
             'Other Duties': 'E'
             }
-        #inverse..
-        self.MM_TO_DUTY = {}
-        for cat in self.DUTY_TO_MM:
-            key = cat
-            val = self.DUTY_TO_MM[cat]
-            self.MM_TO_DUTY[val] = key
 
-        #print(self.MM_TO_DUTY, self.DUTY_TO_MM)
-            
-        
     def readInstructorCSV(self):
         """
         read the file and squirrel away data in it.
@@ -99,7 +100,7 @@ class ReadInstructorDdahCSV:
                 self.rows += [row]  #name, utorid, total_hours then estimate in hours
                 
     def toDdah(self):
-        "convert what we read into a DDAH instance. to do so parse raw rows read previously"
+        "convert each row into a DDAH instance. parse raw rows read previously"
         ddahList = []
         for r in self.rows:
             ta_name = r[0]
@@ -108,15 +109,6 @@ class ReadInstructorDdahCSV:
             tutorial_category = r[3] #nb unset for 369
             #rest of row contains estimates of how long duties will take
             estimated_hours = r[4:]
-            if self.VERBOSE:
-                print('TA name:',ta_name)
-                print('utorid:',ta_utorid)
-                print('total_hours:',total_hours)
-                print('tutorial_category:',tutorial_category)
-                print('estimated_hours:',estimated_hours)
-                print("self.duty_descriptions:",self.duty_descriptions)
-                print("self.duty_categories:",self.duty_categories)
-                print(next(zip(estimated_hours, self.duty_descriptions, self.duty_categories)))
 
             # create an allocation for each duty for which an time estimate is found
             allocations = []
@@ -136,45 +128,37 @@ class ReadInstructorDdahCSV:
             print(ddahList)
         return ddahList
 
-    def writeTappDdahCSV(self,ddah,ofn):
-        "eh"
+    def writeTappDdahCSV(self,ddahList,ofn):
+        "write out the ddah as a CSV file in the format tapp can import"
+        empty_cell = ['']
+        prefix_cols = [''] * 5
 
         with open(ofn, 'w') as csvfile:
-            empty_cell = ['']
-            prefix_cols = [''] * 5
-            ddah_csv_writer = csv.writer(csvfile, delimiter=',',
-                                    quotechar="'", quoting=csv.QUOTE_MINIMAL)
-            #why oh why repeat of required_hours?
+            ddah_csv_writer = csv.writer(csvfile, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
             ddah_csv_writer.writerow([ "applicant_name", "utorid", "required_hours","trainings","allocations",'id(generated)'])
+            for ddah in ddahList:
+                total = ddah.totalHours()
+                num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
+                unit_name_row = empty_cell * 2 + ["total_hours","categories",'','unit_name']
+                duty_id_row   = empty_cell * 2 + [total] + 2* empty_cell + ['duty_id']
+                minutes_row   = prefix_cols + ['minutes']
+                hours_row     = prefix_cols + ['hours']
 
-            total = 0.0
-            for a in ddah.allocations:
-                total +=  (a.quantity * a.duration_in_minutes)
-            total /= 60.0
+                for a in ddah.allocations:
+                    num_units_row += ["%d" % a.quantity]
+                    unit_name_row += ["%s" % a.duty_description]
+                    duty_id_row   += ["%s" % self.DUTY_TO_MM[a.duty_type]]
+                    minutes_row   += ["%d" % a.duration_in_minutes]
+                    hours_row     += ["%d" % (a.quantity * a.duration_in_minutes)]
 
-            num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
-            unit_name_row = empty_cell * 2 + ["total_hours","categories",'','unit_name']
-            #surely total doesn't repeat what's the second one??
-            duty_id_row   = empty_cell * 2 + [total] + 2* empty_cell + ['duty_id']
-            minutes_row   = prefix_cols + ['minutes']
-            hours_row     = prefix_cols + ['hours']
-
-            for a in ddah.allocations:
-                num_units_row += ["%d" % a.quantity]
-                unit_name_row += ["%s" % a.duty_description]
-                duty_id_row   += ["%s" % self.DUTY_TO_MM[a.duty_type]]
-                minutes_row   += ["%d" % a.duration_in_minutes]
-                hours_row     += ["%d" % (a.quantity * a.duration_in_minutes)]
-
-            for row in [num_units_row, unit_name_row, duty_id_row, minutes_row, hours_row]:
-                ddah_csv_writer.writerow(row)
+                for row in [num_units_row, unit_name_row, duty_id_row, minutes_row, hours_row]:
+                    ddah_csv_writer.writerow(row)
 
     def __str__(self):
         "fixme"
 
     def dump(self):
         print(self.DUTY_TO_MM)
-        print(self.MM_TO_DUTY)
         print(self.duty_descriptions)
         print(self.duty_categories)
         print('--- data ---');
@@ -192,7 +176,5 @@ if __name__ == '__main__':
     
     me = ReadInstructorDdahCSV(fn)
     me.readInstructorCSV()
-    ddahList = me.toDdah()
-    for ddah in ddahList:
-        me.writeTappDdahCSV(ddah,ofn)
+    me.writeTappDdahCSV(me.toDdah(),ofn)
                  
