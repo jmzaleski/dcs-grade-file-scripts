@@ -136,9 +136,45 @@ class ReadInstructorDdahCSV:
             print(ddahList)
         return ddahList
 
-    def writeTappDdahCSV(self,ddah):
+    def writeTappDdahCSV(self,ddah,ofn):
+        "eh"
+
+        with open(ofn, 'w') as csvfile:
+            empty_cell = ['']
+            prefix_cols = [''] * 5
+            ddah_csv_writer = csv.writer(csvfile, delimiter=',',
+                                    quotechar="'", quoting=csv.QUOTE_MINIMAL)
+            #why oh why repeat of required_hours?
+            ddah_csv_writer.writerow([ "applicant_name", "utorid", "required_hours","trainings","allocations",'id(generated)'])
+
+            total = 0.0
+            for a in ddah.allocations:
+                total +=  (a.quantity * a.duration_in_minutes)
+            total /= 60.0
+
+            num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
+            unit_name_row = empty_cell * 2 + ["total_hours","categories",'','unit_name']
+            #surely total doesn't repeat what's the second one??
+            duty_id_row   = empty_cell * 2 + [total] + 2* empty_cell + ['duty_id']
+            minutes_row   = prefix_cols + ['minutes']
+            hours_row     = prefix_cols + ['hours']
+
+            for a in ddah.allocations:
+                num_units_row += ["%d" % a.quantity]
+                unit_name_row += ["%s" % a.duty_description]
+                duty_id_row   += ["%s" % self.DUTY_TO_MM[a.duty_type]]
+                minutes_row   += ["%d" % a.duration_in_minutes]
+                hours_row     += ["%d" % (a.quantity * a.duration_in_minutes)]
+
+            for row in [num_units_row, 
+            ddah_csv_writer.writerow(num_units_row)
+            ddah_csv_writer.writerow(unit_name_row)
+            ddah_csv_writer.writerow(duty_id_row)
+            ddah_csv_writer.writerow(minutes_row)
+            ddah_csv_writer.writerow(hours_row)
+
         "write a Ddah instance out in the format tapp/cp/ddah likes to import it"
-        print(ddah.name, ddah.utorid, ddah.total_hours, ddah.category)
+
         num_units_line = "num_units"
         for a in ddah.allocations:
             num_units_line += ",%d" % a.quantity
@@ -174,16 +210,16 @@ class ReadInstructorDdahCSV:
         
 if __name__ == '__main__':
 
-    if len(sys.argv) == 2 :
+    if len(sys.argv) == 3 :
         fn = sys.argv[1]
+        ofn = sys.argv[2]
     else:
-        msg.warning( "usage: ", sys.argv[0], "instructor-csv-file-name")
+        print( "usage: ", sys.argv[0], "instructor-csv-file-name output-tapp-csv-file-name")
         exit(2)
     
     me = ReadInstructorDdahCSV(fn)
     me.readInstructorCSV()
     ddahList = me.toDdah()
     for ddah in ddahList:
-        print("eh?")
-        me.writeTappDdahCSV(ddah)
+        me.writeTappDdahCSV(ddah,ofn)
                  
