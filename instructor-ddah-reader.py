@@ -166,35 +166,8 @@ class ReadInstructorDdahCSV:
                 minutes_row   += ["%d" % a.duration_in_minutes]
                 hours_row     += ["%d" % (a.quantity * a.duration_in_minutes)]
 
-            for row in [num_units_row, 
-            ddah_csv_writer.writerow(num_units_row)
-            ddah_csv_writer.writerow(unit_name_row)
-            ddah_csv_writer.writerow(duty_id_row)
-            ddah_csv_writer.writerow(minutes_row)
-            ddah_csv_writer.writerow(hours_row)
-
-        "write a Ddah instance out in the format tapp/cp/ddah likes to import it"
-
-        num_units_line = "num_units"
-        for a in ddah.allocations:
-            num_units_line += ",%d" % a.quantity
-        print(num_units_line)
-
-        unit_name_line = "unit_name"
-        for a in ddah.allocations:
-            unit_name_line += ",%s" % a.duty_description
-        print(unit_name_line)
-
-        duty_id_line = "duty_id"
-        for a in ddah.allocations:
-            duty_id_line += ",%s" % self.DUTY_TO_MM[a.duty_type]
-        print(duty_id_line)
-
-        minutes_line = "minutes"
-        for a in ddah.allocations:
-            minutes_line += ",%d" % (a.quantity * a.duration_in_minutes)
-        print(minutes_line)
-
+            for row in [num_units_row, unit_name_row, duty_id_row, minutes_row, hours_row]:
+                ddah_csv_writer.writerow(row)
 
     def __str__(self):
         "fixme"
