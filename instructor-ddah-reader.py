@@ -17,7 +17,7 @@ class DdahAllocation:
         self.duration_in_minutes = durationInMinutes
 
     def __str__(self):
-        return "ID=%d Q=%d, C=%s, %s D=%d hours=%g " % (self.id, self.quantity, self.duty_type,
+        return "ID=%d Q=%d, C=%s, %s D=%d hours=%6.2f " % (self.id, self.quantity, self.duty_type,
                                                     self.duty_description,self.duration_in_minutes,
                                                     float(self.quantity * self.duration_in_minutes / 60.0))
 
@@ -25,14 +25,15 @@ class DdahAllocation:
 
 class Ddah:
     "Description of Duties and Hockey for a single student"
-    def __init__(self, name, utorid,category,allocations):
+    def __init__(self, name, utorid, total_hours, category,allocations):
         self.name = name
         self.utorid = utorid
+        self.total_hours = total_hours
         self.category = category
         self.allocations = allocations #list of DdahAllocation instances
 
     def __str__(self):
-        s = "TA_name=%s utorid=%s tutorial_category=%s" % (self.name, self.utorid, self.category)
+        s = "TA_name=%s utorid=%s total_hours=%5.2f tutorial_category=%s" % (self.name, self.utorid, self.total_hours, self.category)
         for a in self.allocations:
             s += "\n  "
             s += str(a)
@@ -103,7 +104,7 @@ class ReadInstructorDdahCSV:
         for r in self.rows:
             ta_name = r[0]
             ta_utorid = r[1]
-            total_hours = r[2]
+            total_hours = float(r[2])
             tutorial_category = r[3] #nb unset for 369
             #rest of row contains estimates of how long duties will take
             estimated_hours = r[4:]
@@ -127,13 +128,37 @@ class ReadInstructorDdahCSV:
                     print("hours:",hour, "desc:", duty_description, "category:", duty_cat, "mmcat:", self.DUTY_TO_MM[duty_cat])
                     print(a)
                 allocations.append(a)
-            ddah = Ddah(ta_name, ta_utorid, tutorial_category, allocations)
+            ddah = Ddah(ta_name, ta_utorid, total_hours, tutorial_category, allocations)
             if self.VERBOSE:
                 print(ddah)
             ddahList.append( ddah)
         if self.VERBOSE:
             print(ddahList)
         return ddahList
+
+    def writeTappDdahCSV(self,ddah):
+        "write a Ddah instance out in the format tapp/cp/ddah likes to import it"
+        print(ddah.name, ddah.utorid, ddah.total_hours, ddah.category)
+        num_units_line = "num_units"
+        for a in ddah.allocations:
+            num_units_line += ",%d" % a.quantity
+        print(num_units_line)
+
+        unit_name_line = "unit_name"
+        for a in ddah.allocations:
+            unit_name_line += ",%s" % a.duty_description
+        print(unit_name_line)
+
+        duty_id_line = "duty_id"
+        for a in ddah.allocations:
+            duty_id_line += ",%s" % self.DUTY_TO_MM[a.duty_type]
+        print(duty_id_line)
+
+        minutes_line = "minutes"
+        for a in ddah.allocations:
+            minutes_line += ",%d" % (a.quantity * a.duration_in_minutes)
+        print(minutes_line)
+
 
     def __str__(self):
         "fixme"
@@ -159,6 +184,6 @@ if __name__ == '__main__':
     me.readInstructorCSV()
     ddahList = me.toDdah()
     for ddah in ddahList:
-        print(ddah)
-
+        print("eh?")
+        me.writeTappDdahCSV(ddah)
                  
