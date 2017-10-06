@@ -8,12 +8,21 @@ class DdahAllocation:
     time will be allocated to. Eg. 'marking 31 a1 estimated to take 5 min each'
     """
     ID = 0
-    def __init__(self,name,duty_type,quantity,durationInMinutes):
-        self.name = name            #eg grade a1
+    def __init__(self,duty_description,duty_type,quantity,durationInMinutes):
+        self.id = DdahAllocation.ID
+        DdahAllocation.ID +=1
+        self.duty_description = duty_description            #eg grade a1
         self.duty_type = duty_type  #eg Marking
         self.quantity = quantity    #31
-        self.durationInMinutes = durationInMinutes        
-        
+        self.duration_in_minutes = durationInMinutes
+
+    def __str__(self):
+        return "ID=%d Q=%d, C=%s, %s D=%d hours=%g " % (self.id, self.quantity, self.duty_type,
+                                                    self.duty_description,self.duration_in_minutes,
+                                                    float(self.quantity * self.duration_in_minutes / 60.0))
+
+
+
 class Ddah:
     "Description of Duties and Hockey for a single student"
     def __init__(self, name, utorid,category,allocations):
@@ -21,6 +30,13 @@ class Ddah:
         self.utorid = utorid
         self.category = category
         self.allocations = allocations #list of DdahAllocation instances
+
+    def __str__(self):
+        s = "TA_name=%s utorid=%s tutorial_category=%s" % (self.name, self.utorid, self.category)
+        for a in self.allocations:
+            s += "\n  "
+            s += str(a)
+        return s
     
 class ReadInstructorDdahCSV:
     """Class to manage reading one of the files that Karen was emailed
@@ -28,6 +44,7 @@ class ReadInstructorDdahCSV:
     line representing each student
     """
     def __init__(self, file_name):
+        self.VERBOSE = False #debug
         self.FN = file_name
         self.duty_descriptions = [] #row on the form giving the "type of allocation"
         self.rows = [] #row        #raw rows describing each TA
@@ -81,39 +98,47 @@ class ReadInstructorDdahCSV:
                 self.rows += [row]  #name, utorid, total_hours then estimate in hours
                 
     def toDdah(self):
-        x = []
-        for c in self.duty_categories:
-            if c:
-                x += self.DUTY_TO_MM[c]
-        print(x)
+        "convert what we read into a DDAH instance. to do so parse raw rows read previously"
+        ddahList = []
         for r in self.rows:
             ta_name = r[0]
             ta_utorid = r[1]
             total_hours = r[2]
             tutorial_category = r[3] #nb unset for 369
+            #rest of row contains estimates of how long duties will take
             estimated_hours = r[4:]
-            print('TA name:',ta_name)
-            print('utorid:',ta_utorid)
-            print('total_hours:',total_hours)
-            print('tutorial_category:',tutorial_category)
-            print('estimated_hours:',estimated_hours)
-            #hours_estimated_for_activities = self.duty_description[4:]
-            #print(hours_estimated_for_activities)
-            # creating an allocation for each column in instructor's csv file
-            print("self.duty_descriptions:",self.duty_descriptions)
-            print("self.duty_categories:",self.duty_categories)
-            print(next(zip(estimated_hours, self.duty_descriptions, self.duty_categories)))
+            if self.VERBOSE:
+                print('TA name:',ta_name)
+                print('utorid:',ta_utorid)
+                print('total_hours:',total_hours)
+                print('tutorial_category:',tutorial_category)
+                print('estimated_hours:',estimated_hours)
+                print("self.duty_descriptions:",self.duty_descriptions)
+                print("self.duty_categories:",self.duty_categories)
+                print(next(zip(estimated_hours, self.duty_descriptions, self.duty_categories)))
+
+            # create an allocation for each duty for which an time estimate is found
             allocations = []
             for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_categories):
                 if len(hour) == 0:
                     continue
-                print("hours:",hour, "desc:", duty_description, "category:", duty_cat, "mmcat:", self.DUTY_TO_MM[duty_cat])
-                allocations.append(DdahAllocation(duty_description,hour,1,hour*60.0))
-            print(allocations)
-            exit(0)
-            #template = Ddah(name, utorid,tutorial_category)
+                a = DdahAllocation(duty_description, duty_cat, 1.0, float(hour) * 60.0)
+                if self.VERBOSE:
+                    print("hours:",hour, "desc:", duty_description, "category:", duty_cat, "mmcat:", self.DUTY_TO_MM[duty_cat])
+                    print(a)
+                allocations.append(a)
+            ddah = Ddah(ta_name, ta_utorid, tutorial_category, allocations)
+            if self.VERBOSE:
+                print(ddah)
+            ddahList.append( ddah)
+        if self.VERBOSE:
+            print(ddahList)
+        return ddahList
 
-    def toString(self):
+    def __str__(self):
+        "fixme"
+
+    def dump(self):
         print(self.DUTY_TO_MM)
         print(self.MM_TO_DUTY)
         print(self.duty_descriptions)
@@ -121,7 +146,6 @@ class ReadInstructorDdahCSV:
         print('--- data ---');
         for r in self.rows:
             print(r)
-        
         
 if __name__ == '__main__':
 
@@ -133,8 +157,8 @@ if __name__ == '__main__':
     
     me = ReadInstructorDdahCSV(fn)
     me.readInstructorCSV()
-    print(me.toString())
-    me.toDdah()
-#    me.mm_header()
+    ddahList = me.toDdah()
+    for ddah in ddahList:
+        print(ddah)
 
                  
