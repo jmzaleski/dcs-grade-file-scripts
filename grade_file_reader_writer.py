@@ -1,5 +1,4 @@
 from __future__ import print_function  #allows print as function
-
 import re
 from Namespace import Namespace
 import matz_utils

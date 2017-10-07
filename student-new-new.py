@@ -27,7 +27,8 @@ else:
 
 #build maps from cdfid (which we can always parse out of these files)
 
-empty_reader = grade_file_reader_writer.GradeFileReaderWriter(EMPTY_GRADES)    
+
+empty_reader = grade_file_reader_writer.GradeFileReaderWriter(open(EMPTY_GRADES).read())
 empty_reader.read_file()
 
 matched_lines = empty_reader.matching_lines_ignore_case(query_string)
@@ -93,8 +94,10 @@ field_names_beyond_first_field = empty_reader.mark_names[1:]
 menu_items = [line] # the entire line as menu selection zero. no corresponding field_name
 ix=0
 for field_name in field_names_beyond_first_field:
-    #print(ix, field_name, data_fields[ix])
-    menu_items += [ ("%-10s " %  field_name) +  data_fields[ix]]
+    if ix < len(data_fields):
+        menu_items += [ ("%-10s " %  field_name) +  data_fields[ix]]
+    else:
+        print("no data in grade file for field:", field_name)
     ix+=1
 
 #print(menu_items)
