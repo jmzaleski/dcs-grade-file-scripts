@@ -121,13 +121,26 @@ class ReadInstructorDdahCSV:
             ddahList.append( ddah)
         return ddahList
 
-    def writeTappDdahCSV(self,ddahList,ofn):
+    def writeTappDdahCSV(self,ddahList,supervisor_utorid, round_id, ofn):
         "write out the ddah as a CSV file in the format tapp can import"
         empty_cell = ['']
         prefix_cols = [''] * 5
 
         with open(ofn, 'w') as csvfile:
             ddah_csv_writer = csv.writer(csvfile, delimiter=',', quotechar="'", quoting=csv.QUOTE_MINIMAL)
+            ddah_csv_writer.writerow(["supervisor_utorid",supervisor_utorid])
+            ddah_csv_writer.writerow( ["course_name","CSC300H1F"])
+            ddah_csv_writer.writerow( ["round_id",round_id])
+            ddah_csv_writer.writerow( ["duties_list","trainings_list","categories_list"])
+            
+            ddah_csv_writer.writerow( ["Training",                         "A",'',  "Attending Health and Safety training session","A",'',                    "Discussion-based Tutorial","A",''])
+            ddah_csv_writer.writerow( ["Additional Training (if required)","B",'',  "Meeting with supervisor","B",'',                                         "Skill Development Tutorial",'B'])
+            ddah_csv_writer.writerow( ["Preparation",                      "C",'',  "Adapting Teaching Techniques (ATT) (scaling learning activities)","C",'',"Review and Q&A Session",'C'])
+            ddah_csv_writer.writerow( ["Contact Time",                     "D",'',  '','','',                                                                 "Laboratory/Practical",'D'])
+            ddah_csv_writer.writerow( ["Marking/Grading","E",''])
+            ddah_csv_writer.writerow( ["Other Duties","F",''])
+            ddah_csv_writer.writerow( empty_cell )
+
             ddah_csv_writer.writerow([ "applicant_name", "utorid", "required_hours","trainings","allocations",'id(generated)'])
             for ddah in ddahList:
                 total = ddah.totalHours()
@@ -160,14 +173,16 @@ class ReadInstructorDdahCSV:
         
 if __name__ == '__main__':
 
-    if len(sys.argv) == 3 :
-        fn = sys.argv[1]
-        ofn = sys.argv[2]
+    if len(sys.argv) == 5 :
+        supervisor_utorid = sys.argv[1]
+        round_id = sys.argv[2]
+        fn = sys.argv[3]
+        ofn = sys.argv[4]
     else:
-        print( "usage: ", sys.argv[0], "instructor-csv-file-name output-tapp-csv-file-name")
+        print( "usage: ", sys.argv[0], "supervisor_id round_id instructor-csv-file-name output-tapp-csv-file-name")
         exit(2)
     
     me = ReadInstructorDdahCSV(fn)
     me.readInstructorCSV()
-    me.writeTappDdahCSV(me.toDdah(),ofn)
+    me.writeTappDdahCSV(me.toDdah(),supervisor_utorid,round_id,ofn)
                  
