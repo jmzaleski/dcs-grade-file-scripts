@@ -1,3 +1,4 @@
+from __future__ import print_function  #allows print as function
 
 def zip_assignments_for_ta(gfr, markus_download_dir, dest_dir):
     import os
@@ -10,19 +11,22 @@ def zip_assignments_for_ta(gfr, markus_download_dir, dest_dir):
     tas = set([ns.ta for ns in gfr.students])
     files_per_ta = {}
     for ta in tas:
+        print(ta)
         ta_files = []
         # assert len([ns.utorid for ns in gfr.students if ns.ta == ta]) == len(set([ns.utorid for ns in gfr.students if ns.ta == ta]))
         for utorid in [ns.utorid for ns in gfr.students if ns.ta == ta]:
             rel_path = utorid
-            dir = "%s/%s/" % (markus_download_dir, rel_path)
+            dir = "%s/%s/" % (markus_download_dir, rel_path) ###hack
             if not os.path.isdir(dir):
+                print("no dir for", utorid)
                 continue
+            print(dir, "for", utorid)
             for fn in [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]:
                 ta_files.append(os.path.join(rel_path, fn))
         files_per_ta[ta] = ta_files
 
-    # for ta in tas:
-    #    print(ta, len(files_per_ta[ta]), files_per_ta[ta])
+    for ta in tas:
+       print(ta, len(files_per_ta[ta]), files_per_ta[ta])
 
     from shutil import copy
 
