@@ -64,9 +64,9 @@ class ReadInstructorDdahCSV:
             'Training' : 'A',
             'Additional Training (if required)':'B',
             'Preparation': 'C',
-            'Marking/Grading' : 'D',
             'Contact Time': 'D',
-            'Other Duties': 'E'
+            'Marking/Grading' : 'E',
+            'Other Duties': 'F'
             }
 
     def readInstructorCSV(self):
