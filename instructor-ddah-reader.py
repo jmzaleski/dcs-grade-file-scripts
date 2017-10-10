@@ -185,7 +185,7 @@ if __name__ == '__main__':
         ofn = sys.argv[5]
         print(sys.argv)
     else:
-        print( "usage: ", sys.argv[0], "supervisor_id round_id instructor-csv-file-name output-tapp-csv-file-name")
+        print( "usage: ", sys.argv[0], "course_aka_position supervisor_id round_id instructor-csv-file-name output-tapp-csv-file-name")
         exit(2)
     
     me = ReadInstructorDdahCSV(fn)
