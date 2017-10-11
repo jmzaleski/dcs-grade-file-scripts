@@ -60,15 +60,32 @@ class ReadInstructorDdahCSV:
         self.duty_types = []
         #maps the strings the instructors were asked to describe kind of duty
         #to the letters the DDAH importer needs to see.
-        self.DUTY_TO_MM = { #short for michelle map :)
-            'Training' : 'A',
-            'Additional Training (if required)':'B',
-            'Preparation': 'C',
-            'Contact Time': 'D',
-            'Marking/Grading' : 'E',
-            'Other Duties': 'F'
+
+        self.DUTY_TO_MM = { #MM short for "michelle map" :)
+            'Training'                          : 'A',
+            'Additional Training (if required)' : 'B',
+            'Preparation'                       : 'C',
+            'Contact Time'                      : 'D',
+            'Marking/Grading'                   : 'E',
+            'Other Duties'                      : 'F'
             }
 
+        self.SKILL_CATEGORY_TO_MM = {
+            "Discussion-based Tutorial"  :"A",
+            "Skill Development Tutorial" :'B',
+            "Review and Q&A Session"     :'C',
+            "Laboratory/Practical"       :'D'
+            }
+
+        self.TRAINING_TO_MM = {
+            "Attending Health and Safety training session"                     : "A",
+            "Meeting with supervisor"                                          : "B",
+            "Adapting Teaching Techniques (ATT) (scaling learning activities)" : "C"
+            }
+
+
+
+        
     def readInstructorCSV(self):
         """
         read the file and squirrel away data in it.
@@ -124,6 +141,8 @@ class ReadInstructorDdahCSV:
     def writeTappDdahCSV(self, ddahList, course_aka_position, supervisor_utorid, round_id, ofn):
         "write out the ddah as a CSV file in the format tapp can import"
         empty_cell = ['']
+        #this import season we need to guess this. karen will edit sheet written by this script when necessary
+        HACK_DEFAULT_TUTORIAL_CATEGORY = "Skill Development Tutorial"
         prefix_cols = [''] * 5
 
         with open(ofn, 'w') as csvfile:
@@ -133,25 +152,39 @@ class ReadInstructorDdahCSV:
             ddah_csv_writer.writerow( ["round_id",round_id])
             ddah_csv_writer.writerow( ["duties_list",'','',"trainings_list",'','',"categories_list"])
 
-            #rows = [];
-            #for k in ["Training","Additional Training (if required)","Preparation","Contact Time","Marking/Grading","Other Duties"]:
-            #   rows.append( [k, self.DUTY_TO_MM[k]] )
-
             ddah_csv_writer.writerow( ["Training",                         "A",'',  "Attending Health and Safety training session","A",'',                    "Discussion-based Tutorial","A",''])
             ddah_csv_writer.writerow( ["Additional Training (if required)","B",'',  "Meeting with supervisor","B",'',                                         "Skill Development Tutorial",'B'])
             ddah_csv_writer.writerow( ["Preparation",                      "C",'',  "Adapting Teaching Techniques (ATT) (scaling learning activities)","C",'',"Review and Q&A Session",'C'])
-            ddah_csv_writer.writerow( ["Contact Time",                     "D",'',  '','','',                                                                 "Laboratory/Practical",'D'])
+            ddah_csv_writer.writerow( ["Contact Time",                     "D",'',  '','','',                                                                 "Laboratory/Practical",'D'])         
             ddah_csv_writer.writerow( ["Marking/Grading","E",''])
             ddah_csv_writer.writerow( ["Other Duties","F",''])
             ddah_csv_writer.writerow( empty_cell )
 
             for ddah in ddahList:
+
+                broken = False
+                if len(ddah.category) == 0:
+                    ddah.category = HACK_DEFAULT_TUTORIAL_CATEGORY
+                    
+                if not ddah.category in self.SKILL_CATEGORY_TO_MM:
+                    print("``%s''" % ddah.category, 'not valid skill category')
+                    broken = True
+
                 total = ddah.totalHours()
                 num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
                 unit_name_row = empty_cell * 2 + ["total_hours","categories",'','unit_name']
-                duty_id_row   = empty_cell * 2 + [total] + ["B"] + empty_cell + ['duty_id']  #HACK.. sometimes fix B to C by hand?
+                duty_id_row   = empty_cell * 2 + [total] + [self.SKILL_CATEGORY_TO_MM[ddah.category]] + empty_cell + ['duty_id']  #HACK.. sometimes fix B to C by hand?
                 minutes_row   = prefix_cols + ['minutes']
                 hours_row     = prefix_cols + ['hours']
+                    
+                for a in ddah.allocations:
+                    if not a.duty_type in self.DUTY_TO_MM:
+                        broken = True
+                        print(ddah.name, ddah.utorid, 'duty type ', "``%s''" % a.duty_type, 'not valid')
+
+                if broken:
+                    print("quitting due to errors in allocations")
+                    exit(3)
 
                 ddah_csv_writer.writerow([ "applicant_name", "utorid", "required_hours","trainings","allocations",'id(generated)'])
                 for a in ddah.allocations:
