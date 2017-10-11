@@ -149,7 +149,7 @@ class ReadInstructorDdahCSV:
                 total = ddah.totalHours()
                 num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
                 unit_name_row = empty_cell * 2 + ["total_hours","categories",'','unit_name']
-                duty_id_row   = empty_cell * 2 + [total] + 2* empty_cell + ['duty_id']
+                duty_id_row   = empty_cell * 2 + [total] + ["B"] + empty_cell + ['duty_id']  #HACK.. sometimes fix B to C by hand?
                 minutes_row   = prefix_cols + ['minutes']
                 hours_row     = prefix_cols + ['hours']
 
