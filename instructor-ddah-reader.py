@@ -2,6 +2,8 @@ from __future__ import print_function  # allows print as function
 
 import csv  # see https://docs.python.org/2/library/csv.html
 import sys
+import traceback
+    
 
 class DdahAllocation:
     """like line in the DDAH form, describes one of the duties a TA's
@@ -97,16 +99,22 @@ class ReadInstructorDdahCSV:
         """
         with open(self.FN, 'r') as csvfile:
             csv_file_reader = csv.reader(csvfile, delimiter=',', quotechar='|',dialect=csv.excel_tab)
-            raw_line = next(csv_file_reader)
-            assert( raw_line[0] == "Name")
-            assert (raw_line[1] == "Email")
-            assert (raw_line[2] == "Total Hours")
-            assert (raw_line[3] == "Tutorial Category")
-            self.duty_descriptions = raw_line[4:]
+            raw_first_line  = next(csv_file_reader)
+            assert( raw_first_line[0] == "Name")
+            assert (raw_first_line[1] == "Email")
+            assert (raw_first_line[2] == "Total Hours")
+            assert (raw_first_line[3] == "Tutorial Category")
+            self.duty_descriptions = raw_first_line[4:]
             first_line = True
             for row in csv_file_reader:
                 if len(row) == 0:
                     continue #just skip the damn empty lines
+                empty = True
+                for each_col in row:
+                    if len(each_col)>0:
+                        empty = False
+                if empty:
+                    continue
                 if first_line:
                     assert(row[0] == '')
                     self.duty_types = row[4:]
@@ -117,25 +125,31 @@ class ReadInstructorDdahCSV:
     def toDdah(self):
         "convert each row into a DDAH instance. parse raw rows read previously"
         ddahList = []
+        ix = 0
         for r in self.rows:
-            ta_name = r[0]
-            ta_utorid = r[1]
-            total_hours = float(r[2])
-            training_category = r[3] #nb unset for 369
-            #rest of row contains estimates of how long duties will take
-            estimated_hours = r[4:]
+            try:
+                ta_name = r[0]
+                ta_utorid = r[1]
+                total_hours = float(r[2])
+                training_category = r[3] #nb unset for 369
+                #rest of row contains estimates of how long duties will take
+                estimated_hours = r[4:]
 
-            # create an allocation for each duty for which an time estimate is found
-            allocations = []
-            for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_types):
-                if len(hour) == 0:
-                    continue #skip pesky blank lines in instructor CSV files
-                a = DdahAllocation(duty_description, duty_cat, 1.0, float(hour) * 60.0)
-                if self.VERBOSE: print(a)
-                allocations.append(a)
-            ddah = Ddah(ta_name, ta_utorid, total_hours, training_category, allocations)
-            if self.VERBOSE: print(ddah)
-            ddahList.append( ddah)
+                # create an allocation for each duty for which an time estimate is found
+                allocations = []
+                for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_types):
+                    if len(hour) != 0: 
+                        a = DdahAllocation(duty_description, duty_cat, 1.0, float(hour) * 60.0)
+                        if self.VERBOSE: print(a)
+                        allocations.append(a)
+                        ddah = Ddah(ta_name, ta_utorid, total_hours, training_category, allocations)
+                        if self.VERBOSE: print(ddah)
+                        ddahList.append( ddah)
+                ix +=1
+            except:
+                print("parsing rows failed on row", ix, r,file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                        
         return ddahList
 
     def writeTappDdahCSV(self, ddahList, course_aka_position, supervisor_utorid, round_id, ofn):
@@ -161,14 +175,19 @@ class ReadInstructorDdahCSV:
             ddah_csv_writer.writerow( empty_cell )
 
             for ddah in ddahList:
-
-                broken = False
                 if len(ddah.category) == 0:
                     ddah.category = HACK_DEFAULT_TUTORIAL_CATEGORY
                     
+                broken = False
                 if not ddah.category in self.SKILL_CATEGORY_TO_MM:
-                    print("``%s''" % ddah.category, 'not valid skill category')
+                    print("``%s''" % ddah.category, 'not valid skill category',file=sys.stderr)
                     broken = True
+                for a in ddah.allocations:
+                    if not a.duty_type in self.DUTY_TO_MM:
+                        broken = True
+                        print(ddah.name, ddah.utorid, 'duty type ', "``%s''" % a.duty_type, 'not valid',str(a),file=sys.stderr)
+                if broken:
+                    raise Exception("quitting due to errors in allocation:" )
 
                 total = ddah.totalHours()
                 num_units_row = [ ddah.name, ddah.utorid, ddah.total_hours, '','','num_units']
@@ -177,14 +196,6 @@ class ReadInstructorDdahCSV:
                 minutes_row   = prefix_cols + ['minutes']
                 hours_row     = prefix_cols + ['hours']
                     
-                for a in ddah.allocations:
-                    if not a.duty_type in self.DUTY_TO_MM:
-                        broken = True
-                        print(ddah.name, ddah.utorid, 'duty type ', "``%s''" % a.duty_type, 'not valid')
-
-                if broken:
-                    print("quitting due to errors in allocations")
-                    exit(3)
 
                 ddah_csv_writer.writerow([ "applicant_name", "utorid", "required_hours","trainings","allocations",'id(generated)'])
                 for a in ddah.allocations:
@@ -216,13 +227,29 @@ if __name__ == '__main__':
         round_id = sys.argv[3]
         fn = sys.argv[4]
         ofn = sys.argv[5]
-        print(sys.argv)
     else:
-        print( "usage: ", sys.argv[0], "course_aka_position supervisor_id round_id instructor-csv-file-name output-tapp-csv-file-name")
-        exit(2)
-    
-    me = ReadInstructorDdahCSV(fn)
-    me.readInstructorCSV()
-    me.writeTappDdahCSV(me.toDdah(),course_aka_position,supervisor_utorid,round_id,ofn)
+        print( "usage: ", sys.argv[0], "course_aka_position supervisor_id round_id instructor-csv-file-name output-tapp-csv-file-name",file=sys.stderr)
 
-                 
+    try:
+        me = ReadInstructorDdahCSV(fn)
+    except:
+        print("reading", fn, "threw",file=sys.stderr)
+        traceback.print_exc(file=sys.stdout)
+        exit(1)
+
+    try:
+        me.readInstructorCSV()
+    except:
+        print("parsing ddah csv info threw",file=sys.stderr)
+        traceback.print_exc(file=sys.stdout)
+        exit(2)
+        
+    try:
+        me.writeTappDdahCSV(me.toDdah(),course_aka_position,supervisor_utorid,round_id,ofn)
+    except:
+        print(sys.argv[0], "python import script threw..",file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        exit(2)
+
+    exit(0)
+    
