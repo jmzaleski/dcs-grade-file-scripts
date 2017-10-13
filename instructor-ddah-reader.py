@@ -107,6 +107,7 @@ class ReadInstructorDdahCSV:
             self.duty_descriptions = raw_first_line[4:]
             first_line = True
             for row in csv_file_reader:
+                if self.VERBOSE: print("readInstructor", row)
                 if len(row) == 0:
                     continue #just skip the damn empty lines
                 empty = True
@@ -138,13 +139,16 @@ class ReadInstructorDdahCSV:
                 # create an allocation for each duty for which an time estimate is found
                 allocations = []
                 for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_types):
+                    if self.VERBOSE: print("zip","``%s''"% hour,"``%s''"% duty_description,"``%s''"% duty_cat)
+                    
+                for (hour,duty_description,duty_cat) in zip(estimated_hours, self.duty_descriptions, self.duty_types):
                     if len(hour) != 0: 
                         a = DdahAllocation(duty_description, duty_cat, 1.0, float(hour) * 60.0)
-                        if self.VERBOSE: print(a)
+                        #if self.VERBOSE: print(a)
                         allocations.append(a)
-                        ddah = Ddah(ta_name, ta_utorid, total_hours, training_category, allocations)
-                        if self.VERBOSE: print(ddah)
-                        ddahList.append( ddah)
+                ddah = Ddah(ta_name, ta_utorid, total_hours, training_category, allocations)
+                ddahList.append( ddah)
+                if self.VERBOSE: print("toDdah",ddah)
                 ix +=1
             except:
                 print("parsing rows failed on row", ix, r,file=sys.stderr)
@@ -175,6 +179,8 @@ class ReadInstructorDdahCSV:
             ddah_csv_writer.writerow( empty_cell )
 
             for ddah in ddahList:
+                if self.VERBOSE: print("writeTappDdah",ddah)
+                    
                 if len(ddah.category) == 0:
                     ddah.category = HACK_DEFAULT_TUTORIAL_CATEGORY
                     
