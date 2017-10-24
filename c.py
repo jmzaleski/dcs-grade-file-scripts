@@ -1,28 +1,6 @@
 #!/usr/bin/env python
 
-import curses
-
-options = [
-    "aoption1",
-    "aoption2longer",
-    "boption1",
-    "boption2",
-    "ab_option1",
-    "c_opt1",
-    "c_opt11",
-    "c_xxxxx",
-    ]
-
-#curses.cbreak()
-stdscr = curses.initscr()
-#stdscr.keypad(True) #doesn't seem to work
-curses.noecho()
-
-height = 10
-
-stdscr.move(height,1)
-
-def update_status_line(c,query):
+def update_status_line(stdscr,height,c,query,ix):
     stdscr.move(1,1)
     stdscr.clrtoeol()
     stdscr.addstr(query)
@@ -36,14 +14,14 @@ def update_status_line(c,query):
     stdscr.move(height,ix)
 
 
-def erase_completions():
+def erase_completions(stdscr,height):
     iy = height
     while iy > 3:
         iy -= 1
         stdscr.move(iy,1)
         stdscr.clrtoeol()
         
-def show_completions(query):
+def show_completions(stdscr,height,query,ix):
     if len(query) == 0:
         return
     iy = height
@@ -57,11 +35,11 @@ def show_completions(query):
             stdscr.addstr(o)
     stdscr.move(height,ix)
 
-def refresh_view(c,query):
+def refresh_view(stdscr,height,c,query,ix):
     "redraw three panes"
-    update_status_line(c,query)
-    erase_completions()
-    show_completions(query)
+    update_status_line(stdscr,height,c,query,ix)
+    erase_completions(stdscr,height)
+    show_completions(stdscr,height,query,ix)
     
 def longest_common_prefix(query):
     if len(query) == 0:
@@ -98,75 +76,105 @@ def longest_common_prefix(query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return prefix
 
-try:
-    ix = 1
-    query = ''
-    while 1:
-        c = stdscr.getch()
-        if True:
-            update_status_line(c,query)
+def curses_input_string_with_completions(options):
+    """
+    beware: first (as in novice) attempt at curses programming.
+    Prompt for a character, and show completions matching the query so far.
+    Tab extends query so far with longest common completion.
+    """
+    import curses
 
-        if c == ord("\n") or c == 4: #EOF
-            break
+    stdscr = curses.initscr()
+    curses.cbreak()
+    stdscr.keypad(True) #doesn't seem to help
+    curses.noecho()
 
-        elif c == 9: # TAB key
-            # tab key set query to longest prefix amongst completions
-            completion = longest_common_prefix(query)
-            if completion:
-                query = completion
-                c = ord(' ')
-                refresh_view(c,query)
-                stdscr.move(height,1)
-                stdscr.clrtoeol()
-                stdscr.addstr(query)
-                stdscr.clrtoeol()
-                ix = len(query)+1
-            else:
-                curses.beep()
+    height = 10
+
+    try:
+        ix = 1
+        query = ''
+        while True:
+            c = stdscr.getch()
+            if True:
+                update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
+
+            if c == ord("\n") or c == 4: #EOF
+                break
+
+            elif c == 9: # TAB key
+                # tab key set query to longest prefix amongst completions
+                print("hello")
+                completion = longest_common_prefix(query)
+                if completion:
+                    query = completion
+                    c = ord(' ')
+                    refresh_view(stdscr,height,c,query,ix)
+                    stdscr.move(height,1)
+                    stdscr.clrtoeol()
+                    stdscr.addstr(query)
+                    stdscr.clrtoeol()
+                    ix = len(query)+1
+                else:
+                    curses.beep()
+                    stdscr.move(height,ix)
+                    stdscr.clrtoeol()
+                
+            elif c == 127: # DEL key, backspace on my keyboard??
+                # delete last char from query, erase on screen
+                query = query[:-1]
+                refresh_view(stdscr,height,c,query,ix)
+                if ix == 1:
+                    curses.beep()
+                else:
+                    ix -= 1
+                    # erase line following ix
+                    stdscr.move(height,ix)
+                    stdscr.clrtoeol()
+
+            elif c == 21: # ^U 
+                # blow away query, erase everything
+                query = ''
+                refresh_view(stdscr,height,c,query,ix)
+                ix = 1
                 stdscr.move(height,ix)
                 stdscr.clrtoeol()
-                
-        elif c == 127: # DEL key, backspace on my keyboard??
-            # delete last char from query, erase on screen
-            query = query[:-1]
-            refresh_view(c,query)
-            if ix == 1:
                 curses.beep()
+            
             else:
-                ix -= 1
-            # erase line following ix
-            stdscr.move(height,ix)
-            stdscr.clrtoeol()
-
-        elif c == 21: # ^U 
-            # blow away query, erase everything
-            query = ''
-            refresh_view(c,query)
-            ix = 1
-            stdscr.move(height,ix)
-            stdscr.clrtoeol()
-            curses.beep()
-            
-        else:
-            # append c to query and display c
-            stdscr.addch(c)
-            query += chr(c)
-            refresh_view(c,query)
-            ix += 1
-            
-        stdscr.move(height,ix) #move on to the next place..
+                # append c to query and display c
+                stdscr.addch(c)
+                query += chr(c)
+                refresh_view(stdscr,height,c,query,ix)
+                ix += 1
+                stdscr.move(height,ix) #move on to the next place..
         
-    curses.nocbreak()
-    stdscr.keypad(False)
-    curses.echo()
-    curses.endwin()
-    print(query)
+        curses.nocbreak()
+        stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
+        return query
 
-except:
-    curses.endwin()
-    print("threw..")
-    import traceback,sys
-    traceback.print_exc(file=sys.stdout)
-    exit(2)
+    except:
+        curses.endwin()
+        print("threw..")
+        import traceback,sys
+        traceback.print_exc(file=sys.stdout)
+        return None
 
 
+
+if __name__ == "__main__" :
+    options = [
+    "aoption1",
+    "aoption2longer",
+    "boption1",
+    "boption2",
+    "ab_option1",
+    "c_opt1",
+    "c_opt11",
+    "c_xxxxx",
+    ]
+
+    resp = curses_input_string_with_completions(options)
+    print(resp)
