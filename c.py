@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 def update_status_line(stdscr,height,c,query,ix):
+    """
+    render c (last char entered), query string so far, and horizontal char next
+    into a status line display
+    """
     stdscr.move(1,1)
     stdscr.clrtoeol()
     stdscr.addstr(query)
@@ -15,6 +19,7 @@ def update_status_line(stdscr,height,c,query,ix):
 
 
 def erase_completions(stdscr,height):
+    "nuke completion area of display"
     iy = height
     while iy > 3:
         iy -= 1
@@ -22,6 +27,7 @@ def erase_completions(stdscr,height):
         stdscr.clrtoeol()
         
 def show_completions(stdscr,height,query,ix):
+    "render the completions of query"
     if len(query) == 0:
         return
     iy = height
@@ -36,12 +42,16 @@ def show_completions(stdscr,height,query,ix):
     stdscr.move(height,ix)
 
 def refresh_view(stdscr,height,c,query,ix):
-    "redraw three panes"
+    "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
     erase_completions(stdscr,height)
     show_completions(stdscr,height,query,ix)
+    stdscr.move(height,1)
+    stdscr.clrtoeol()
+    stdscr.addstr(query)
     
 def longest_common_prefix(query):
+    "return the longest prefix that all the completions starting with query share"
     if len(query) == 0:
         return None
 
@@ -76,7 +86,7 @@ def longest_common_prefix(query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return prefix
 
-def curses_input_string_with_completions(options):
+def prompt_for_input_string_with_completions_curses(options):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -94,6 +104,9 @@ def curses_input_string_with_completions(options):
     try:
         ix = 1
         query = ''
+        c = ord(' ')
+        refresh_view(stdscr,height,c,query,ix)
+
         while True:
             c = stdscr.getch()
             if True:
@@ -104,50 +117,37 @@ def curses_input_string_with_completions(options):
 
             elif c == 9: # TAB key
                 # tab key set query to longest prefix amongst completions
-                print("hello")
                 completion = longest_common_prefix(query)
                 if completion:
                     query = completion
                     c = ord(' ')
-                    refresh_view(stdscr,height,c,query,ix)
-                    stdscr.move(height,1)
-                    stdscr.clrtoeol()
-                    stdscr.addstr(query)
-                    stdscr.clrtoeol()
                     ix = len(query)+1
                 else:
                     curses.beep()
-                    stdscr.move(height,ix)
-                    stdscr.clrtoeol()
+                refresh_view(stdscr,height,c,query,ix)
                 
             elif c == 127: # DEL key, backspace on my keyboard??
                 # delete last char from query, erase on screen
                 query = query[:-1]
-                refresh_view(stdscr,height,c,query,ix)
                 if ix == 1:
                     curses.beep()
                 else:
                     ix -= 1
-                    # erase line following ix
-                    stdscr.move(height,ix)
-                    stdscr.clrtoeol()
+                refresh_view(stdscr,height,c,query,ix)
 
             elif c == 21: # ^U 
+                curses.beep()
                 # blow away query, erase everything
                 query = ''
-                refresh_view(stdscr,height,c,query,ix)
                 ix = 1
-                stdscr.move(height,ix)
-                stdscr.clrtoeol()
-                curses.beep()
+                refresh_view(stdscr,height,c,query,ix)
             
             else:
                 # append c to query and display c
                 stdscr.addch(c)
                 query += chr(c)
-                refresh_view(stdscr,height,c,query,ix)
                 ix += 1
-                stdscr.move(height,ix) #move on to the next place..
+                refresh_view(stdscr,height,c,query,ix)
         
         curses.nocbreak()
         stdscr.keypad(False)
@@ -176,5 +176,5 @@ if __name__ == "__main__" :
     "c_xxxxx",
     ]
 
-    resp = curses_input_string_with_completions(options)
+    resp = prompt_for_input_string_with_completions_curses(options)
     print(resp)
