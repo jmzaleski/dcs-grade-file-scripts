@@ -25,6 +25,9 @@ options = [
     "boption1",
     "boption2",
     "ab_option1",
+    "c_opt1",
+    "c_opt11",
+    "c_xxxxx",
     ]
 
 query = ''
@@ -97,40 +100,44 @@ def longest_completion():
 import difflib
 import os
 def longest_common_prefix():
+
     if len(query) == 0:
         return None
-    len_longest_prefix = 0
-    longest_comment_prefix = None
-    for o in options:
-        s = difflib.SequenceMatcher(None, o, query)
-        match = s.find_longest_match(0, len(o), 0, len(query))
-        l = match.size
-        #print("match",match.a,match.b,match.size)
-        if l > len_longest_prefix:
-            len_longest_prefix = l
-            longest_comment_prefix = o[:len_longest_prefix]
 
-    #okay, so now have the the longest common thingy.. collect the options that start with it
+    #collect the options that start with it.
     l = []
-    prefix = longest_comment_prefix
     for o in options:
-        if o.startswith(longest_comment_prefix):
+        if o.startswith(query):
             l.append(o)
 
     assert(len(l) > 0)
-    if len(l) == 1:
-        return l[0]
-    
-    prefix = longest_comment_prefix
-    an_opt = l[0]
-    for ix in range(len_longest_prefix,len(an_opt)+1):
+
+    # if len(l) == 1:
+    #     return l[0]
+
+    an_opt = l[0] # an arbitrary element of the list of matches
+    # search for the longest prefix that all of all l share.
+    # can't be longer than length of an_opt, so only search that far
+    #
+    prefix = query
+    prev_prefix = ''
+    verbose = True
+    verbose = False
+    for ix in range(len(query),len(an_opt)+1):
+        prev_prefix = prefix
+        prefix = an_opt[:ix] #save longest so far..
+        if verbose: print("\r\nix",ix,"prefix", prefix)
+        # if all in l match prefix, can try longer prefix
         for o in l:
             if o.startswith(prefix):
-                prefix = an_opt[:ix-1] #save longest so far..
+                if verbose: print("\r\no startswith prefix ",o,prefix)
             else:
-                assert(prefix)
-                return prefix
+                assert(prev_prefix)
+                if verbose: print("\r\nnope, prefix too long",prefix, prev_prefix)
+                return prev_prefix
+
     #here if entire an_opt is longest common prefix
+    if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return prefix
 
 try:
