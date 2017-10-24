@@ -41,13 +41,14 @@ def show_completions(stdscr,height,query,ix):
             stdscr.addstr(o)
     stdscr.move(height,ix)
 
-def refresh_view(stdscr,height,c,query,ix):
+def refresh_view(stdscr,height,prompt,c,query,ix):
     "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
     erase_completions(stdscr,height)
     show_completions(stdscr,height,query,ix)
     stdscr.move(height,1)
     stdscr.clrtoeol()
+    stdscr.addstr(prompt)
     stdscr.addstr(query)
     
 def longest_common_prefix(query):
@@ -86,7 +87,7 @@ def longest_common_prefix(query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return prefix
 
-def prompt_for_input_string_with_completions_curses(options):
+def prompt_for_input_string_with_completions_curses(prompt,options):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -105,7 +106,7 @@ def prompt_for_input_string_with_completions_curses(options):
         ix = 1
         query = ''
         c = ord(' ')
-        refresh_view(stdscr,height,c,query,ix)
+        refresh_view(stdscr,height,prompt,c,query,ix)
 
         while True:
             c = stdscr.getch()
@@ -124,7 +125,7 @@ def prompt_for_input_string_with_completions_curses(options):
                     ix = len(query)+1
                 else:
                     curses.beep()
-                refresh_view(stdscr,height,c,query,ix)
+                refresh_view(stdscr,height,prompt,c,query,ix)
                 
             elif c == 127: # DEL key, backspace on my keyboard??
                 # delete last char from query, erase on screen
@@ -133,21 +134,21 @@ def prompt_for_input_string_with_completions_curses(options):
                     curses.beep()
                 else:
                     ix -= 1
-                refresh_view(stdscr,height,c,query,ix)
+                refresh_view(stdscr,height,prompt,c,query,ix)
 
             elif c == 21: # ^U 
                 curses.beep()
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                refresh_view(stdscr,height,c,query,ix)
+                refresh_view(stdscr,height,prompt,c,query,ix)
             
             else:
                 # append c to query and display c
                 stdscr.addch(c)
                 query += chr(c)
                 ix += 1
-                refresh_view(stdscr,height,c,query,ix)
+                refresh_view(stdscr,height,prompt,c,query,ix)
         
         curses.nocbreak()
         stdscr.keypad(False)
@@ -176,5 +177,5 @@ if __name__ == "__main__" :
     "c_xxxxx",
     ]
 
-    resp = prompt_for_input_string_with_completions_curses(options)
+    resp = prompt_for_input_string_with_completions_curses(">",options)
     print(resp)
