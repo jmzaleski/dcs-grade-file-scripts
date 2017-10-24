@@ -1,23 +1,6 @@
 #!/usr/bin/env python
 
 import curses
-import curses.textpad
-import time
-
-#curses.cbreak()
-stdscr = curses.initscr()
-#stdscr.keypad(True) #doesn't seem to work
-curses.noecho()
-
-#curses.echo()
-
-begin_x = 20
-begin_y = 7
-height = 10
-width = 40
-win = curses.newwin(width,height, begin_y, begin_x)
-
-stdscr.move(height,1)
 
 options = [
     "aoption1",
@@ -30,11 +13,16 @@ options = [
     "c_xxxxx",
     ]
 
-query = ''
+#curses.cbreak()
+stdscr = curses.initscr()
+#stdscr.keypad(True) #doesn't seem to work
+curses.noecho()
 
-    
-    
-def update_status_line():
+height = 10
+
+stdscr.move(height,1)
+
+def update_status_line(c,query):
     stdscr.move(1,1)
     stdscr.clrtoeol()
     stdscr.addstr(query)
@@ -55,7 +43,7 @@ def erase_completions():
         stdscr.move(iy,1)
         stdscr.clrtoeol()
         
-def show_completions():
+def show_completions(query):
     if len(query) == 0:
         return
     iy = height
@@ -69,59 +57,31 @@ def show_completions():
             stdscr.addstr(o)
     stdscr.move(height,ix)
 
-def only_one_completion():
-    if len(query) == 0:
-        return None
-    got_one = False
-    one_completion = ''
-    for o in options:
-        if o.startswith(query):
-            if got_one:
-                return None #multiples match..
-            else:
-                got_one =  True
-                one_completion = o
-    return one_completion
-
-def longest_completion():
-    if len(query) == 0:
-        return None
-    longest_len = 0
-    longest_completion = None
-    for o in options:
-        if o.startswith(query):
-            l = len(o)
-            if l > longest_len:
-                longest_len = l
-                longest_completion = o
+def refresh_view(c,query):
+    "redraw three panes"
+    update_status_line(c,query)
+    erase_completions()
+    show_completions(query)
     
-    return longest_completion
-
-import difflib
-import os
-def longest_common_prefix():
-
+def longest_common_prefix(query):
     if len(query) == 0:
         return None
 
-    #collect the options that start with it.
     l = []
     for o in options:
         if o.startswith(query):
             l.append(o)
+    if len(l) == 0:
+        return None
 
-    assert(len(l) > 0)
+    # an arbitrary element of the list of matches
+    an_opt = l[0] 
 
-    # if len(l) == 1:
-    #     return l[0]
-
-    an_opt = l[0] # an arbitrary element of the list of matches
     # search for the longest prefix that all of all l share.
     # can't be longer than length of an_opt, so only search that far
     #
     prefix = query
     prev_prefix = ''
-    verbose = True
     verbose = False
     for ix in range(len(query),len(an_opt)+1):
         prev_prefix = prefix
@@ -129,11 +89,9 @@ def longest_common_prefix():
         if verbose: print("\r\nix",ix,"prefix", prefix)
         # if all in l match prefix, can try longer prefix
         for o in l:
-            if o.startswith(prefix):
-                if verbose: print("\r\no startswith prefix ",o,prefix)
-            else:
-                assert(prev_prefix)
+            if not o.startswith(prefix):
                 if verbose: print("\r\nnope, prefix too long",prefix, prev_prefix)
+                assert(prev_prefix)
                 return prev_prefix
 
     #here if entire an_opt is longest common prefix
@@ -142,24 +100,22 @@ def longest_common_prefix():
 
 try:
     ix = 1
+    query = ''
     while 1:
         c = stdscr.getch()
         if True:
-            update_status_line()
+            update_status_line(c,query)
 
         if c == ord("\n") or c == 4: #EOF
             break
 
         elif c == 9: # TAB key
-            #completion = only_one_completion()
-            #completion = longest_completion()
-            completion = longest_common_prefix()
+            # tab key set query to longest prefix amongst completions
+            completion = longest_common_prefix(query)
             if completion:
                 query = completion
                 c = ord(' ')
-                update_status_line()
-                erase_completions()
-                show_completions()
+                refresh_view(c,query)
                 stdscr.move(height,1)
                 stdscr.clrtoeol()
                 stdscr.addstr(query)
@@ -171,33 +127,31 @@ try:
                 stdscr.clrtoeol()
                 
         elif c == 127: # DEL key, backspace on my keyboard??
+            # delete last char from query, erase on screen
             query = query[:-1]
-            update_status_line()
-            erase_completions()
-            show_completions()
+            refresh_view(c,query)
             if ix == 1:
                 curses.beep()
             else:
                 ix -= 1
+            # erase line following ix
             stdscr.move(height,ix)
             stdscr.clrtoeol()
 
-        elif c == 21: # ^U blow away line
+        elif c == 21: # ^U 
+            # blow away query, erase everything
             query = ''
-            update_status_line()
-            erase_completions()
-            show_completions()
+            refresh_view(c,query)
             ix = 1
             stdscr.move(height,ix)
             stdscr.clrtoeol()
             curses.beep()
             
         else:
+            # append c to query and display c
             stdscr.addch(c)
             query += chr(c)
-            update_status_line()
-            erase_completions()
-            show_completions()
+            refresh_view(c,query)
             ix += 1
             
         stdscr.move(height,ix) #move on to the next place..
