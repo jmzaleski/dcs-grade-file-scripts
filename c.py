@@ -26,12 +26,12 @@ def erase_completions(stdscr,height):
         stdscr.move(iy,1)
         stdscr.clrtoeol()
         
-def show_completions(stdscr,height,query,ix):
+def show_completions(stdscr,options,height,query,ix):
     "render the completions of query"
     if len(query) == 0:
         return
     iy = height
-    for o in options:
+    for o in options.keys():
         if o.startswith(query):
             iy -=1
             if iy < 3:
@@ -39,25 +39,27 @@ def show_completions(stdscr,height,query,ix):
             stdscr.move(iy,1)
             stdscr.clrtoeol()
             stdscr.addstr(o)
+            stdscr.move(iy,10)
+            stdscr.addstr(options[o])
     stdscr.move(height,ix)
 
-def refresh_view(stdscr,height,prompt,c,query,ix):
+def refresh_view(stdscr,options,height,prompt,c,query,ix):
     "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
     erase_completions(stdscr,height)
-    show_completions(stdscr,height,query,ix)
+    show_completions(stdscr,options,height,query,ix)
     stdscr.move(height,1)
     stdscr.clrtoeol()
     stdscr.addstr(prompt)
     stdscr.addstr(query)
     
-def longest_common_prefix(query):
+def longest_common_prefix(options,query):
     "return the longest prefix that all the completions starting with query share"
     if len(query) == 0:
         return None
 
     l = []
-    for o in options:
+    for o in options.keys():
         if o.startswith(query):
             l.append(o)
     if len(l) == 0:
@@ -87,7 +89,7 @@ def longest_common_prefix(query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return prefix
 
-def prompt_for_input_string_with_completions_curses(prompt,options):
+def prompt_for_input_string_with_completions_curses(prompt,height,options):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -100,13 +102,11 @@ def prompt_for_input_string_with_completions_curses(prompt,options):
     stdscr.keypad(True) #doesn't seem to help
     curses.noecho()
 
-    height = 10
-
     try:
         ix = 1
         query = ''
         c = ord(' ')
-        refresh_view(stdscr,height,prompt,c,query,ix)
+        refresh_view(stdscr,options,height,prompt,c,query,ix)
 
         while True:
             c = stdscr.getch()
@@ -118,14 +118,14 @@ def prompt_for_input_string_with_completions_curses(prompt,options):
 
             elif c == 9: # TAB key
                 # tab key set query to longest prefix amongst completions
-                completion = longest_common_prefix(query)
+                completion = longest_common_prefix(options,query)
                 if completion:
                     query = completion
                     c = ord(' ')
                     ix = len(query)+1
                 else:
                     curses.beep()
-                refresh_view(stdscr,height,prompt,c,query,ix)
+                refresh_view(stdscr,options,height,prompt,c,query,ix)
                 
             elif c == 127: # DEL key, backspace on my keyboard??
                 # delete last char from query, erase on screen
@@ -134,27 +134,30 @@ def prompt_for_input_string_with_completions_curses(prompt,options):
                     curses.beep()
                 else:
                     ix -= 1
-                refresh_view(stdscr,height,prompt,c,query,ix)
+                refresh_view(stdscr,options,height,prompt,c,query,ix)
 
             elif c == 21: # ^U 
                 curses.beep()
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                refresh_view(stdscr,height,prompt,c,query,ix)
+                refresh_view(stdscr,options,height,prompt,c,query,ix)
             
             else:
                 # append c to query and display c
                 stdscr.addch(c)
                 query += chr(c)
                 ix += 1
-                refresh_view(stdscr,height,prompt,c,query,ix)
+                refresh_view(stdscr,options,height,prompt,c,query,ix)
         
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
         curses.endwin()
-        return query
+        if c == 4:
+            return None
+        else:
+            return query
 
     except:
         curses.endwin()
@@ -166,16 +169,16 @@ def prompt_for_input_string_with_completions_curses(prompt,options):
 
 
 if __name__ == "__main__" :
-    options = [
-    "aoption1",
-    "aoption2longer",
-    "boption1",
-    "boption2",
-    "ab_option1",
-    "c_opt1",
-    "c_opt11",
-    "c_xxxxx",
-    ]
+    options = {
+    "aoption1": "desc1",
+    "aoption2longer": "desc1",
+    "boption1": "desc1",
+    "boption2": "desc1",
+    "ab_option1": "desc1",
+    "c_opt1": "desc1",
+    "c_opt11": "desc1",
+    "c_xxxxx": "desc1",
+    }
 
     resp = prompt_for_input_string_with_completions_curses(">",options)
     print(resp)
