@@ -77,7 +77,7 @@ def select_a_student(gfr,completion_dict):
     Returns a line, or None, which indicates user entered empty query or EOF, presumably to indicate they are finished"""
 
     while True:
-        from c import prompt_for_input_string_with_completions_curses
+        from prompt_for_input_string_with_completions_curses import prompt_for_input_string_with_completions_curses
 
         query_string = prompt_for_input_string_with_completions_curses(
             "student id (tab completes on utorid, EOF to finish): ",
@@ -90,6 +90,10 @@ def select_a_student(gfr,completion_dict):
         elif len(query_string) == 0:
             continue  # try query again..
 
+        # this behaviour might not be right for all use cases!
+        # if user hit return on a query that was the prefix of only one
+        # completion (but not the exact utorid) we record the mark for that student.
+        
         matched_lines = gfr.matching_lines(query_string)
         if len(matched_lines) == 0:
             print(query_string, "matched nothing.. try again")

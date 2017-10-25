@@ -30,13 +30,7 @@ def show_completions(stdscr,options,height,query,ix):
     "render the completions of query"
     if len(query) == 0:
         return
-    n = 0
-    for o in options.keys():
-        if o.startswith(query):
-            n += 1
-    #n = min(height,n)
-    
-    iy = 3
+    iy = 3    #sorry.. top line is status, then ___, so start at line  3
     for o in options.keys():
         if o.startswith(query):
             if iy > height-1:
