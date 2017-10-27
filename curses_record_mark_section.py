@@ -124,9 +124,53 @@ if __name__ == '__main__':
 
     #completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
     d = read_utorid_dict_from_cdf_class_list_file(class_list_file_name)
-    #completion_list = d.keys()
-    #set_up_readline(completion_list)
 
+    # carefully prompt for file name. keep trying until we have a file that does NOT exist that we can write to.
+    while True:
+        try:
+            new_file_name = input("write modified lines into file named:")
+            if new_file_name == grade_file_name:
+                print("too dangerous to output to the same file we are reading.. choose another file")
+                continue
+        except EOFError:
+            print("..okay then, you really don't want to set an output file name so just quitting..")
+            exit(2)
+        except KeyboardInterrupt:
+            print("really? caught that interupt but guessing you still want to name an output file. Try again (EOF to quit)")
+            continue
+
+        #okay, so have a file name.. does the file system think we can write it?
+        try:
+            if os.path.exists(new_file_name):
+                print(new_file_name, "exists.. and we refuse to overwrite. Try another")
+                continue
+        except:
+            print("unexpected throw on os.access. bail")
+            traceback.print_exc(file=sys.stdout)
+            exit(3)
+
+        #now try writing empty string.. 
+        try:
+            with open(new_file_name, "w") as output_file:
+                output_file.write('')
+                os.system("ls -l " + new_file_name)
+        except:
+            print(new_file_name, "failed to write data?? bail")
+            traceback.print_exc(file=sys.stdout)
+            exit(3)
+
+        #so try copying input data to the new file..
+        try:
+            gfr.write_to_new_grade_file(new_file_name)
+            os.system("ls -l " + new_file_name)
+            break
+        except:
+            print("exception happened opening ", new_file_name, "for writing or actually writing data")
+            print("just tried to write a copy of input into", new_file_name, "and failed! giving up")
+            exit(4)
+
+    # have an output file we're confident we can write. get to work
+            
     # prompt for something obvious by way of identifying data, name, utorid, student number, whatever
     # readline tab completion on utorid only, so if entering utorid very efficient
     # however, will look for any regular expression in grades file too.
@@ -137,43 +181,53 @@ if __name__ == '__main__':
             if selected_student_line == None:
                 break
             #print(selected_student_line)
-            if True:
+            
+            if True: #attendance, cr/ncr, or other all-or-nothing assignment
                 mark = 1
             else:
                 mark = read_query_from_input("mark:")
                 print("`%s'" % (mark))
                 #probably want to make empty string full marks or whatever most common entry is
+
+            # append the new mark to the line of the grade file
             try:
                 appendage = "%s" % (int(mark))
-                #print(appendage)
                 if not gfr.append_mark_to_line(selected_student_line,appendage):
                     print(selected_student_line, "not found.. have you changed student record already this run?")
             except:
                 traceback.print_exc(file=sys.stdout)
-                print("threw when adding together marks or adding them")
+                print("threw when appending marks")
+                
+            # finally try and write what has been entered to the new file identified earlier.
+            # paranoidly write entire mark file out each time a single grade is entered.
+            try:
+                gfr.write_to_new_grade_file(new_file_name)
+            except:
+                print("exception happened writing ", new_file_name, "weird given we wrote it earlier successfully")
+                exit(1)
+        os.system("ls -l " + new_file_name)
+
     except:
         print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
         traceback.print_exc(file=sys.stdout)
         print("threw when adding together marks or adding them")
 
-    # carefully prompt for file name. keep trying until we write the data.
-    # Really, really don't want to lose the typing that went on above!!
-    while True:
-        try:
-            new_file_name = input("write modified lines into file named:")
+        # Really, really don't want to lose the typing that went on above, so try writing to another? file
+        while True:
             try:
-                gfr.write_to_new_grade_file(new_file_name)
-            except:
-                print("exception happened opening ", new_file_name, "for writing or actually writing data")
+                new_file_name = input("write modified lines into file named:")
+                try:
+                    gfr.write_to_new_grade_file(new_file_name)
+                except:
+                    print("exception happened opening ", new_file_name, "for writing or actually writing data")
+                    continue
+                os.system("ls -l " + new_file_name)
+                break
+
+            except KeyboardInterrupt:
+                print("really? caught that interupt but guessing you still want to save! EOF to quit")
                 continue
-            os.system("ls -l " + new_file_name)
-            exit(0)
-
-        except EOFError:
-            print("..eof..okay then, really quit w/o saving..")
-            exit(2)
-
-        except KeyboardInterrupt:
-            print("really? caught that interupt but guessing you still want to save! EOF to quit")
-            continue
+            except EOFError:
+                print("..eof..okay then, really quit w/o saving..")
+                break
 
