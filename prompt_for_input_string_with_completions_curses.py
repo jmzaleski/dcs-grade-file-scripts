@@ -98,11 +98,16 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
     Tab extends query so far with longest common completion.
     """
     import curses
+    import curses.ascii
 
     stdscr = curses.initscr()
     curses.cbreak()
     stdscr.keypad(True) #doesn't seem to help
     curses.noecho()
+
+    # TODO: users terminal setting stty(1) actually determine what special keys do what
+    # eg: I like ^C for interrupt and DEL for backspace,
+    # some old-school users might have DEL as interrupt key.
 
     try:
         ix = 1
@@ -110,16 +115,40 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
         c = ord(' ')
         refresh_view(stdscr,options,height,prompt,c,query,ix)
 
+        # TODO: what to do if user hits return when query is not unique? Currently just return it.
+        # thinking about beeping and then insisting on control-enter (or something) to really return.
+
+        is_nasty_lf_hack = False
+        
         while True:
             c = stdscr.getch()
             if True:
                 update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
 
-            if c == ord("\n") or c == 4: #EOF
+            if is_nasty_lf_hack:
+                stdscr.move(height+1,2) ##hack
+                stdscr.clrtoeol()
+                
+            if c == curses.ascii.LF:
+                if query in options.keys() or is_nasty_lf_hack:
+                    break
+                    
+                curses.beep()
+                #print("\r\nix=",ix,len(query))
+                # if ix > 1:
+                #     ix -= 1
+                #print("\r\nix=",ix,len(query))
+                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                stdscr.move(height+1,2) ##hack
+                stdscr.addstr("query " + "`" + query +  "' is not unique.. enter again to return it anyway")
+                is_nasty_lf_hack = True
+            
+            elif  c == curses.ascii.EOT: #end of file, control-d
                 break
-
-            elif c == 9: # TAB key
-                # tab key set query to longest prefix amongst completions
+            
+            elif c == curses.ascii.TAB: 
+                is_nasty_lf_hack = False
+                # TAB key set query to longest prefix amongst completions
                 completion = longest_common_prefix(options,query)
                 if completion:
                     query = completion
@@ -128,8 +157,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 else:
                     curses.beep()
                 refresh_view(stdscr,options,height,prompt,c,query,ix)
-                
-            elif c == 127: # DEL key, backspace on my keyboard??
+
+            # TODO: learn how to make sure stty options are in effect for editing?
+            elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
+                is_nasty_lf_hack = False
                 # delete last char from query, erase on screen
                 query = query[:-1]
                 if ix == 1:
@@ -138,7 +169,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                     ix -= 1
                 refresh_view(stdscr,options,height,prompt,c,query,ix)
 
-            elif c == 21: # ^U 
+            # this is getting on thin ice. stty determines which character "kills" all input
+            elif c == curses.ascii.NAK: # aka ^U
+                is_nasty_lf_hack = False
+                assert(curses.ascii.isctrl(c))
                 curses.beep()
                 # blow away query, erase everything
                 query = ''
@@ -146,6 +180,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 refresh_view(stdscr,options,height,prompt,c,query,ix)
             
             else:
+                is_nasty_lf_hack = False
                 # append c to query and display c
                 stdscr.addch(c)
                 query += chr(c)
