@@ -130,17 +130,26 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 stdscr.clrtoeol()
                 
             if c == curses.ascii.LF:
+
                 if query in options.keys() or is_nasty_lf_hack:
                     break
-                    
+
+                completion = longest_common_prefix(options,query)
+
+                #this is questionable behaviour.. if query is a unique prefix of completions return it
+                if completion:
+                    print(query,"is unique, so returning", completion)
+                    query = completion
+                    break
+
+                # query not unique, no good.. beep 
                 curses.beep()
-                #print("\r\nix=",ix,len(query))
-                # if ix > 1:
-                #     ix -= 1
-                #print("\r\nix=",ix,len(query))
                 refresh_view(stdscr,options,height,prompt,c,query,ix)
                 stdscr.move(height+1,2) ##hack
-                stdscr.addstr("query " + "`" + query +  "' is not unique.. enter again to return it anyway")
+                stdscr.addstr("query " +
+                                  "`"  + query +
+                                  "' is not unique.. enter again to return it anyway")
+                # nasty way to let user really return non-unique query. TODO: think of better way!
                 is_nasty_lf_hack = True
             
             elif  c == curses.ascii.EOT: #end of file, control-d
