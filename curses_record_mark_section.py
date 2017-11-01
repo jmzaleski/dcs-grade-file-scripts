@@ -175,7 +175,7 @@ if __name__ == '__main__':
     # readline tab completion on utorid only, so if entering utorid very efficient
     # however, will look for any regular expression in grades file too.
 
-    #hello csc300
+    #hello csc300 again
     try:
         while True:
             selected_student_line = select_a_student(gfr,d)
