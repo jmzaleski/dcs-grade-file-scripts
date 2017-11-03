@@ -176,7 +176,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
             elif c == curses.ascii.TAB: 
                 is_nasty_lf_hack = False
                 # TAB key set query to longest prefix amongst completions
-                completion = longest_common_prefix(utorids,query)
+                (flg,completion) = longest_common_prefix(utorids,query)
                 if completion:
                     query = completion
                     c = ord(' ')
