@@ -45,6 +45,17 @@ def show_completions(stdscr,utorids,height,query,ix):
     stdscr.addstr("_________________________________")
     stdscr.move(height,ix)
 
+def show_warning_message(stdscr,height,msg):
+    stdscr.move(height+1,1)
+    stdscr.clrtoeol()
+    stdscr.addstr(msg)
+
+def clear_warning_message(stdscr,height):
+    stdscr.move(height+1,1)
+    stdscr.clrtoeol()
+
+
+    
 def refresh_view(stdscr,utorids,height,prompt,c,query,ix):
     "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
@@ -122,22 +133,21 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
         # TODO: what to do if user hits return when query is not unique? Currently just return it.
         # thinking about beeping and then insisting on control-enter (or something) to really return.
 
-        is_nasty_lf_hack = False
+        fake_ungetch_hack_flag = False
         
         while True:
-            c = stdscr.getch()
-            if True:
-                update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
 
-            if is_nasty_lf_hack:
-                stdscr.move(height+1,2) ##hack
-                stdscr.clrtoeol()
+            if fake_ungetch_hack_flag:
+                fake_ungetch_hack_flag = False
+            else:
+                c = stdscr.getch()
+
+            update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
+            clear_warning_message(stdscr,height)
                 
             if c == curses.ascii.LF:
-
                 # we have it. query is exactly one of the utorids..
-                if query in utorids.keys() or is_nasty_lf_hack:
-                    is_nasty_lf_hack = False
+                if query in utorids.keys():
                     break
 
                 # if we have a query which uniquely identifies one utorid we return it.
@@ -158,23 +168,24 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
                         
                 if n != 1: 
                     refresh_view(stdscr,utorids,height,prompt,c,query,ix)
-                    stdscr.move(height+1,2) ##hack
-                    stdscr.addstr("query " +
-                                  "`"  + query +
-                                  "' is not an entire utorid.. enter again to return it")
-                    is_nasty_lf_hack = True
-                    
-                # query not whole utorid, no good.. beep 
-                curses.beep()
-                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
-                continue
-                    
+                    msg = "query " + "`"  + query + "' does not identify a unique utorid.. enter again to return it anyway"
+                    show_warning_message(stdscr,height,msg)
+                    curses.beep()
+                    refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                    c = stdscr.getch()
+                    if c == curses.ascii.LF:
+                        break
+                    else:
+                        fake_ungetch_hack_flag = True
+                        #stdscr.ungetch(c) #groan.. no python binding for this golden oldie
+                        clear_warning_message(stdscr,height)
+                        refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                        continue
             
             elif  c == curses.ascii.EOT: #end of file, control-d
                 break
             
             elif c == curses.ascii.TAB: 
-                is_nasty_lf_hack = False
                 # TAB key set query to longest prefix amongst completions
                 (flg,completion) = longest_common_prefix(utorids,query)
                 if completion:
@@ -187,7 +198,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
 
             # TODO: learn how to make sure stty options are in effect for editing?
             elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
-                is_nasty_lf_hack = False
                 # delete last char from query, erase on screen
                 query = query[:-1]
                 if ix == 1:
@@ -198,7 +208,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
 
             # this is getting on thin ice. stty determines which character "kills" all input
             elif c == curses.ascii.NAK: # aka ^U
-                is_nasty_lf_hack = False
                 assert(curses.ascii.isctrl(c))
                 curses.beep()
                 # blow away query, erase everything
@@ -207,9 +216,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
                 refresh_view(stdscr,utorids,height,prompt,c,query,ix)
             
             else:
-                is_nasty_lf_hack = False
-                # append c to query and display c
-                stdscr.addch(c)
+                # append c to query.
                 query += chr(c)
                 ix += 1
                 refresh_view(stdscr,utorids,height,prompt,c,query,ix)
