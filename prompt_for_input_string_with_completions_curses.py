@@ -56,40 +56,44 @@ def refresh_view(stdscr,options,height,prompt,c,query,ix):
     stdscr.addstr(query)
     
 def longest_common_prefix(options,query):
-    "return the longest prefix that all the completions starting with query share"
+    """
+    return a tuple.. (flagTrueIfWholeCompletion,aStringPrefix) the flag tells if the prefix is the whole completion, the string is the prefix
+    """
     if len(query) == 0:
-        return None
+        return (False,None)
 
     l = []
     for o in options.keys():
         if o.startswith(query):
             l.append(o)
-    if len(l) == 0:
-        return None
 
-    # an arbitrary element of the list of matches
+    # forget it none of them start with query.
+    if len(l) == 0:
+        return (False,None)
+
+    # an arbitrary utorid which startswith query
     an_opt = l[0] 
 
-    # search for the longest prefix that all of all l share.
+    # search for the longest prefix that all of l share.
     # can't be longer than length of an_opt, so only search that far
-    #
+
     prefix = query
     prev_prefix = ''
     verbose = False
     for ix in range(len(query),len(an_opt)+1):
         prev_prefix = prefix
         prefix = an_opt[:ix] #save longest so far..
+        assert(len(prefix)==ix)
         if verbose: print("\r\nix",ix,"prefix", prefix)
-        # if all in l match prefix, can try longer prefix
         for o in l:
             if not o.startswith(prefix):
                 if verbose: print("\r\nnope, prefix too long",prefix, prev_prefix)
                 assert(prev_prefix)
-                return prev_prefix
+                return (False,prev_prefix)
 
     #here if entire an_opt is longest common prefix
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
-    return prefix
+    return (True,prefix)
 
 def prompt_for_input_string_with_completions_curses(prompt,height,options):
     """
@@ -131,26 +135,40 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 
             if c == curses.ascii.LF:
 
+                # we have it. query is exactly one of the utorids..
                 if query in options.keys() or is_nasty_lf_hack:
+                    is_nasty_lf_hack = False
                     break
 
-                completion = longest_common_prefix(options,query)
+                # if we have a query which uniquely identifies one utorid we return it.
+                (is_whole,completion) = longest_common_prefix(options,query)
 
-                #this is questionable behaviour.. if query is a unique prefix of completions return it
-                if completion:
-                    print(query,"is unique, so returning", completion)
+                # completion is the longest prefix of the all the utorid's starting with query --
+                # but it might not be an entire utorid.
+                # I'm thinking if the prefix is not an entire completion we should beep and demur.
+                if is_whole:
                     query = completion
                     break
 
-                # query not unique, no good.. beep 
+                # check if query uniquely identifies someone?
+                n=0
+                for id in options:
+                    if id.startswith(query):
+                        n += 1
+                        
+                if n != 1: 
+                    refresh_view(stdscr,options,height,prompt,c,query,ix)
+                    stdscr.move(height+1,2) ##hack
+                    stdscr.addstr("query " +
+                                  "`"  + query +
+                                  "' is not an entire utorid.. enter again to return it")
+                    is_nasty_lf_hack = True
+                    
+                # query not whole utorid, no good.. beep 
                 curses.beep()
                 refresh_view(stdscr,options,height,prompt,c,query,ix)
-                stdscr.move(height+1,2) ##hack
-                stdscr.addstr("query " +
-                                  "`"  + query +
-                                  "' is not unique.. enter again to return it anyway")
-                # nasty way to let user really return non-unique query. TODO: think of better way!
-                is_nasty_lf_hack = True
+                continue
+                    
             
             elif  c == curses.ascii.EOT: #end of file, control-d
                 break
