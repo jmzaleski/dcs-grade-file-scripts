@@ -26,12 +26,12 @@ def erase_completions(stdscr,height):
         stdscr.move(iy,1)
         stdscr.clrtoeol()
         
-def show_completions(stdscr,options,height,query,ix):
+def show_completions(stdscr,utorids,height,query,ix):
     "render the completions of query"
     if len(query) == 0:
         return
     iy = 3    #sorry.. top line is status, then ___, so start at line  3
-    for o in options.keys():
+    for o in utorids.keys():
         if o.startswith(query):
             if iy > height-1:
                 break
@@ -39,23 +39,23 @@ def show_completions(stdscr,options,height,query,ix):
             stdscr.clrtoeol()
             stdscr.addstr(o)
             stdscr.move(iy,10)
-            stdscr.addstr(options[o])
+            stdscr.addstr(utorids[o])
             iy += 1
     stdscr.move(height-1,1)
     stdscr.addstr("_________________________________")
     stdscr.move(height,ix)
 
-def refresh_view(stdscr,options,height,prompt,c,query,ix):
+def refresh_view(stdscr,utorids,height,prompt,c,query,ix):
     "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
     erase_completions(stdscr,height)
-    show_completions(stdscr,options,height,query,ix)
+    show_completions(stdscr,utorids,height,query,ix)
     stdscr.move(height,1)
     stdscr.clrtoeol()
     stdscr.addstr(prompt)
     stdscr.addstr(query)
     
-def longest_common_prefix(options,query):
+def longest_common_prefix(utorids,query):
     """
     return a tuple.. (flagTrueIfWholeCompletion,aStringPrefix) the flag tells if the prefix is the whole completion, the string is the prefix
     """
@@ -63,7 +63,7 @@ def longest_common_prefix(options,query):
         return (False,None)
 
     l = []
-    for o in options.keys():
+    for o in utorids.keys():
         if o.startswith(query):
             l.append(o)
 
@@ -95,7 +95,7 @@ def longest_common_prefix(options,query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return (True,prefix)
 
-def prompt_for_input_string_with_completions_curses(prompt,height,options):
+def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -117,7 +117,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
         ix = 1
         query = ''
         c = ord(' ')
-        refresh_view(stdscr,options,height,prompt,c,query,ix)
+        refresh_view(stdscr,utorids,height,prompt,c,query,ix)
 
         # TODO: what to do if user hits return when query is not unique? Currently just return it.
         # thinking about beeping and then insisting on control-enter (or something) to really return.
@@ -136,12 +136,12 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
             if c == curses.ascii.LF:
 
                 # we have it. query is exactly one of the utorids..
-                if query in options.keys() or is_nasty_lf_hack:
+                if query in utorids.keys() or is_nasty_lf_hack:
                     is_nasty_lf_hack = False
                     break
 
                 # if we have a query which uniquely identifies one utorid we return it.
-                (is_whole,completion) = longest_common_prefix(options,query)
+                (is_whole,completion) = longest_common_prefix(utorids,query)
 
                 # completion is the longest prefix of the all the utorid's starting with query --
                 # but it might not be an entire utorid.
@@ -152,12 +152,12 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
 
                 # check if query uniquely identifies someone?
                 n=0
-                for id in options:
+                for id in utorids:
                     if id.startswith(query):
                         n += 1
                         
                 if n != 1: 
-                    refresh_view(stdscr,options,height,prompt,c,query,ix)
+                    refresh_view(stdscr,utorids,height,prompt,c,query,ix)
                     stdscr.move(height+1,2) ##hack
                     stdscr.addstr("query " +
                                   "`"  + query +
@@ -166,7 +166,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                     
                 # query not whole utorid, no good.. beep 
                 curses.beep()
-                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
                 continue
                     
             
@@ -176,14 +176,14 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
             elif c == curses.ascii.TAB: 
                 is_nasty_lf_hack = False
                 # TAB key set query to longest prefix amongst completions
-                completion = longest_common_prefix(options,query)
+                completion = longest_common_prefix(utorids,query)
                 if completion:
                     query = completion
                     c = ord(' ')
                     ix = len(query)+1
                 else:
                     curses.beep()
-                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
 
             # TODO: learn how to make sure stty options are in effect for editing?
             elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
@@ -194,7 +194,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                     curses.beep()
                 else:
                     ix -= 1
-                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
 
             # this is getting on thin ice. stty determines which character "kills" all input
             elif c == curses.ascii.NAK: # aka ^U
@@ -204,7 +204,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
             
             else:
                 is_nasty_lf_hack = False
@@ -212,7 +212,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
                 stdscr.addch(c)
                 query += chr(c)
                 ix += 1
-                refresh_view(stdscr,options,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
         
         curses.nocbreak()
         stdscr.keypad(False)
@@ -233,16 +233,16 @@ def prompt_for_input_string_with_completions_curses(prompt,height,options):
 
 
 if __name__ == "__main__" :
-    options = {
-    "aoption1": "desc1",
-    "aoption2longer": "desc1",
-    "boption1": "desc1",
-    "boption2": "desc1",
-    "ab_option1": "desc1",
+    utorids = {
+    "autorid1": "desc1",
+    "autorid2longer": "desc1",
+    "butorid1": "desc1",
+    "butorid2": "desc1",
+    "ab_utorid1": "desc1",
     "c_opt1": "desc1",
     "c_opt11": "desc1",
     "c_xxxxx": "desc1",
     }
 
-    resp = prompt_for_input_string_with_completions_curses(">",10,options)
+    resp = prompt_for_input_string_with_completions_curses(">",10,utorids)
     print(resp)
