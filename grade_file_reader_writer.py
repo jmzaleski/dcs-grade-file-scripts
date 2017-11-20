@@ -285,9 +285,11 @@ if __name__ == 'xx__main__':
 
 
 if __name__ == '__main__':
+    # example use
     from zip_assignments_for_ta import zip_assignments_for_ta
-
+    grades_file = "/tmp/CSC300H1F-empty"
+    contents_of_grade_file = open(grades_file).read()
     zip_assignments_for_ta(
-        gfr=GradeFileReaderWriter("/tmp/CSC300H1F-empty"),
+        gfr=GradeFileReaderWriter(contents_of_grade_file),
         markus_download_dir="/Users/mzaleski/Dropbox/CSC/300/submit/A4",
         dest_dir = "/tmp/a4")
