@@ -136,7 +136,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
         fake_ungetch_hack_flag = False
         
         while True:
-
             if fake_ungetch_hack_flag:
                 fake_ungetch_hack_flag = False
             else:
@@ -228,6 +227,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
         if c == 4:
             return None
         else:
+            # if query in utorids:
+            #     stdscr.move(1,1)
+            #     stdscr.clrtoeol()
+            #     stdscr.addstr(utorids[query])
             return query
 
     except:

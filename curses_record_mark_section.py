@@ -69,7 +69,7 @@ def select_a_student(gfr,completion_dict):
         from prompt_for_input_string_with_completions_curses import prompt_for_input_string_with_completions_curses
 
         query_string = prompt_for_input_string_with_completions_curses(
-            "student id (tab completes on utorid, EOF to finish): ",
+            "student id (completion on utorid, EOF to finish): ",
             20,
             completion_dict)
         
@@ -82,38 +82,32 @@ def select_a_student(gfr,completion_dict):
         # this behaviour might not be right for all use cases!
         # if user hit return on a query that was the prefix of only one
         # completion (but not the exact utorid) we record the mark for that student.
+        # or, if first chars or utorid are ilegigle and have to type student number or a few chars of name..
         
         matched_lines = gfr.matching_lines(query_string)
         if len(matched_lines) == 0:
             print(query_string, "matched nothing.. try again")
+            continue
         elif len(matched_lines) == 1:
+            print(matched_lines[0])
             return matched_lines[0]
         else:
-            # query_string matched more than one student.. print menu of matches
-            # with an additional choice of NO
+            # query_string matched more than one student.. print UGLY menu of plain text matches
+            # with an additional choice of NO (try again)
             # user choses one, we're good. User choose NO, go around again.
             matched_lines.append("NO")  # add choice that it wasn't right student
             menu = MatzMenu(matched_lines, "select a match: ")
             user_choice = matched_lines[menu.menu()].rstrip()
             if user_choice == "NO":
-                continue #didn't like choices.. try again
+                # didn't like choices.. try again
+                continue 
             else:
-                return user_choice  # yup, this is the oen
+                return user_choice
     return None
 
-from set_up_readline_for_completion import set_up_readline
 
-################## real work ###########################
-if __name__ == '__main__':
-    (one, class_list_file_name, grade_file_name) =  parse_positional_args()
-
-    from grade_file_reader_writer import GradeFileReaderWriter
-    gfr = GradeFileReaderWriter(open(grade_file_name).read())
-    gfr.read_file()
-
-    d = read_utorid_dict_from_cdf_class_list_file(class_list_file_name)
-
-    # carefully prompt for file name. keep trying until we have a file that does NOT exist that we can write to.
+def paranoidly_open_file_for_write(gfr):
+    "open the new file name, also write contents of gfr to it too make really, really sure write is working"
     while True:
         try:
             new_file_name = input("write modified lines into file named:")
@@ -143,7 +137,7 @@ if __name__ == '__main__':
                 output_file.write('')
                 os.system("ls -l " + new_file_name)
         except:
-            print(new_file_name, "failed to write data?? bail")
+            print(new_file_name, "failed to write empty string to file? really? bail!")
             traceback.print_exc(file=sys.stdout)
             exit(3)
 
@@ -156,14 +150,22 @@ if __name__ == '__main__':
             print("exception happened opening ", new_file_name, "for writing or actually writing data")
             print("just tried to write a copy of input into", new_file_name, "and failed! giving up")
             exit(4)
+    return new_file_name
 
-    # have an output file we're confident we can write. get to work
-            
+from set_up_readline_for_completion import set_up_readline
+
+################## real work ###########################
+if __name__ == '__main__':
+    (one, class_list_file_name, grade_file_name) =  parse_positional_args()
+
+    from grade_file_reader_writer import GradeFileReaderWriter
+    gfr = GradeFileReaderWriter(open(grade_file_name).read())
+    gfr.read_file()
+
+    d = read_utorid_dict_from_cdf_class_list_file(class_list_file_name)
+    new_file_name = paranoidly_open_file_for_write(gfr)
+    
     # prompt for something obvious by way of identifying data, name, utorid, student number, whatever
-    # readline tab completion on utorid only, so if entering utorid very efficient
-    # however, will look for any regular expression in grades file too.
-
-    #hello csc300 again
     try:
         while True:
             selected_student_line = select_a_student(gfr,d)
@@ -199,24 +201,6 @@ if __name__ == '__main__':
     except:
         print("an exception happened, save (garbage??) to temp file and pick up pieces by hand")
         traceback.print_exc(file=sys.stdout)
-        print("threw when adding together marks or adding them")
-
-        # Really, really don't want to lose the typing that went on above, so try writing to another? file
-        while True:
-            try:
-                new_file_name = input("write modified lines into file named:")
-                try:
-                    gfr.write_to_new_grade_file(new_file_name)
-                except:
-                    print("exception happened opening ", new_file_name, "for writing or actually writing data")
-                    continue
-                os.system("ls -l " + new_file_name)
-                break
-
-            except KeyboardInterrupt:
-                print("really? caught that interupt but guessing you still want to save! EOF to quit")
-                continue
-            except EOFError:
-                print("..eof..okay then, really quit w/o saving..")
-                break
+        print("threw when adding together marks or adding them. try writing to another file name.")
+        paranoidly_open_file_for_write(gfr) #try try again?
 
