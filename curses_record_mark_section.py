@@ -104,7 +104,7 @@ def select_a_student(gfr,completion_dict):
                 continue 
             else:
                 return user_choice
-    return None
+    return none
 
 
 def paranoidly_open_file_for_write(gfr):
@@ -115,17 +115,17 @@ def paranoidly_open_file_for_write(gfr):
             if new_file_name == grade_file_name:
                 print("too dangerous to output to the same file we are reading.. choose another file")
                 continue
-        except EOFError:
+        except eoferror:
             print("..okay then, you really don't want to set an output file name so just quitting..")
             exit(2)
-        except KeyboardInterrupt:
-            print("really? caught that interupt but guessing you still want to name an output file. Try again (EOF to quit)")
+        except keyboardinterrupt:
+            print("really? caught that interupt but guessing you still want to name an output file. try again (eof to quit)")
             continue
 
         #okay, so have a file name.. does the file system think we can write it?
         try:
             if os.path.exists(new_file_name):
-                print(new_file_name, "exists.. and we refuse to overwrite. Try another")
+                print(new_file_name, "exists.. and we refuse to overwrite. try another")
                 continue
         except:
             print("unexpected throw on os.access. bail")
@@ -177,17 +177,30 @@ if __name__ == '__main__':
             if is_one: #attendance, cr/ncr, or other all-or-nothing assignment
                 mark = 1
             elif is_letter_grade:
-                mark_input = read_query_from_input("mark (a b c d e): ")
-                if mark_input == "a":
-                    mark = 80
-                elif mark_input == "b":
-                    mark = 70
-                elif mark_input == "c":
-                    mark = 60
-                elif mark_input == "d":
-                    mark = 50
-                elif mark_input == "e":
-                    mark = 40
+                while True:
+                    # http://www.artsci.utoronto.ca/newstudents/transition/academic/grading
+                    mark_input = read_query_from_input("mark (a b c d f): ")
+                    if mark_input == "a":
+                        mark = 87
+                        break
+                    elif mark_input == "b":
+                        mark = 75
+                        break
+                    elif mark_input == "c":
+                        mark = 65
+                        break
+                    elif mark_input == "d":
+                        mark = 55
+                        break
+                    elif mark_input == "f":
+                        mark = 30
+                        break
+                    elif mark_input == "0":
+                        mark = 0
+                        break
+                    else:
+                        print("eh?", mark_input)
+                        continue
             else:
                 mark_input = read_query_from_input("mark:")
                 mark = int(mark_input)
