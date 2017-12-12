@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# program that uses curses to show completions for utorids from class list and prompts for marks, writes new grades file.
+# (no longer uses readline, for which completion was a bit too invisible for my taste)
 
 # port install python35 +readline
 # else readline acts very strangely around prompts.
@@ -8,34 +10,21 @@ knows how to handle my 2016 fall CDF empty grades files built from the new class
 """
 from __future__ import print_function  #allows print as function
 
-import sys,os, re,readline, argparse, traceback
+import sys,os, re, traceback
 
 from menu import MatzMenu
 
 def parse_positional_args():
     "parse the command line parameters of this program"
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("class_list_file_name", help="name of CDF class list file")
     parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
+    parser.add_argument("--one", action='store_true', help="any selected utorid gets a mark of 1")
     #TODO: make output grade file the third parm. Can it be made optional somehow?
     args = parser.parse_args()
-    return (args.class_list_file_name, args.grade_file_name)
+    return (args.one, args.class_list_file_name, args.grade_file_name)
 
-def read_utorids_from_cdf_class_list_file(fn):
-    """assuming fn is a csv file, which CDF class lists are,
-    read the file and return an array of the utorids"""
-    import csv
-    utorids = []
-    try:
-        with open(fn, 'r') as csv_file:
-            csv_file_reader = csv.reader(csv_file, delimiter=',')
-            for student_record in csv_file_reader:
-                # yuck. assuming first field of class file is torid
-                utorid = student_record[0]
-                utorids.append(student_record[0])
-            return utorids
-    except:
-        print("exception opening or reading", fn)
 
 def read_utorid_dict_from_cdf_class_list_file(fn):
     """assuming fn is a csv file, which CDF class lists are,
@@ -116,13 +105,12 @@ from set_up_readline_for_completion import set_up_readline
 
 ################## real work ###########################
 if __name__ == '__main__':
-    (class_list_file_name, grade_file_name) =  parse_positional_args()
+    (one, class_list_file_name, grade_file_name) =  parse_positional_args()
 
     from grade_file_reader_writer import GradeFileReaderWriter
     gfr = GradeFileReaderWriter(open(grade_file_name).read())
     gfr.read_file()
 
-    #completion_list = read_utorids_from_cdf_class_list_file(class_list_file_name)
     d = read_utorid_dict_from_cdf_class_list_file(class_list_file_name)
 
     # carefully prompt for file name. keep trying until we have a file that does NOT exist that we can write to.
@@ -183,7 +171,7 @@ if __name__ == '__main__':
                 break
             #print(selected_student_line)
             
-            if True: #attendance, cr/ncr, or other all-or-nothing assignment
+            if one: #attendance, cr/ncr, or other all-or-nothing assignment
                 mark = 1
             else:
                 mark = read_query_from_input("mark:")
