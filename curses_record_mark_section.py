@@ -21,9 +21,10 @@ def parse_positional_args():
     parser.add_argument("class_list_file_name", help="name of CDF class list file")
     parser.add_argument("grade_file_name", help="name of a Jim Clarke format grades file")
     parser.add_argument("--one", action='store_true', help="any selected utorid gets a mark of 1")
+    parser.add_argument("--letter_grade", action='store_true', help="a b c d e convert to %")
     #TODO: make output grade file the third parm. Can it be made optional somehow?
     args = parser.parse_args()
-    return (args.one, args.class_list_file_name, args.grade_file_name)
+    return (args.one, args.letter_grade, args.class_list_file_name, args.grade_file_name)
 
 
 def read_utorid_dict_from_cdf_class_list_file(fn):
@@ -156,7 +157,7 @@ from set_up_readline_for_completion import set_up_readline
 
 ################## real work ###########################
 if __name__ == '__main__':
-    (one, class_list_file_name, grade_file_name) =  parse_positional_args()
+    (is_one, is_letter_grade, class_list_file_name, grade_file_name) =  parse_positional_args()
 
     from grade_file_reader_writer import GradeFileReaderWriter
     gfr = GradeFileReaderWriter(open(grade_file_name).read())
@@ -173,12 +174,25 @@ if __name__ == '__main__':
                 break
             #print(selected_student_line)
             
-            if one: #attendance, cr/ncr, or other all-or-nothing assignment
+            if is_one: #attendance, cr/ncr, or other all-or-nothing assignment
                 mark = 1
+            elif is_letter_grade:
+                mark_input = read_query_from_input("mark (a b c d e): ")
+                if mark_input == "a":
+                    mark = 80
+                elif mark_input == "b":
+                    mark = 70
+                elif mark_input == "c":
+                    mark = 60
+                elif mark_input == "d":
+                    mark = 50
+                elif mark_input == "e":
+                    mark = 40
             else:
-                mark = read_query_from_input("mark:")
-                print("`%s'" % (mark))
-                #probably want to make empty string full marks or whatever most common entry is
+                mark_input = read_query_from_input("mark:")
+                mark = int(mark_input)
+                
+            print("`%s'" % (mark))
 
             # append the new mark to the line of the grade file
             try:
