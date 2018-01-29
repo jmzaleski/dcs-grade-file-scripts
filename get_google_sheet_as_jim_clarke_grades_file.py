@@ -21,6 +21,32 @@ def get_sheet_data(sheet_name):
         import traceback,sys
         print("failed to open sheet", sheet_name)
         traceback.print_exc(file=sys.stdout)
+
+def get_sheet_data_from_url(sheet_url):
+    "get the data for the sheet URL as CSV"
+    #TODO: copy code name version? maybe just toss the name version
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+
+    # see https://www.twilio.com/blog/2017/02/an-easy-way-to-read-and-write-to-a-google-spreadsheet-in-python.html
+
+    # use creds to create a client to interact with the Google Drive API
+    scope = ['https://spreadsheets.google.com/feeds']
+
+    # follow the instructions in the blog above carefully to get this.
+    creds = ServiceAccountCredentials.from_json_keyfile_name('/Users/mzaleski/DCSFetchMarks-3cf40810a20f.json', scope)
+
+    client = gspread.authorize(creds)
+    # Find the workbook by URL and open the first sheet
+    try:
+        work_book = client.open_by_url(sheet_url)
+        sheet = work_book.sheet1
+        csv_file_data = sheet.export(format='csv')
+        return csv_file_data
+    except:
+        import traceback,sys
+        print("failed to open sheet", sheet_url)
+        traceback.print_exc(file=sys.stdout)
         
 def write_grade_file_from_csv_metadata_and_marks(csv_file_data,ofn):
     """smack around the csv data from the google sheet so it's a jim
