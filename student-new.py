@@ -93,7 +93,7 @@ menu_items = [line] + data_fields + ["MAILTO:", "IMAGE:"]
 m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
 resp = m2.menu()
 
-if resp < 0: or  resp >= len(menu_items):
+if resp < 0 or  resp >= len(menu_items):
     exit(0)
 
 selected_menu_item = menu_items[resp]

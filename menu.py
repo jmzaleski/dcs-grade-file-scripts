@@ -16,7 +16,8 @@ class MatzMenu(object):
         self.prompt = prompt
         
     # print a cheesy little menu. If there is just one element in menu_lines, then return 0
-# TODO: be nice to allow user to choose first char of line too.
+    # invalid or interrupt return -1
+    # TODO: be nice to allow user to choose first char of line too.
     def menu(self):
         if len(self.menu_lines) == 1:
             return 0
@@ -31,7 +32,11 @@ class MatzMenu(object):
             if len(str_selection) == 0:
                 return 0 #just enter selects zero'th menu item
             else:
-                return int(str_selection)
+                #TODO check within bounds and return -1 if not?
+                ix = int(str_selection)
+                if ix < 0 or ix  >= len(self.menu_lines):
+                    return -1
+                return ix
         except KeyboardInterrupt:
             #here if user types control-C (or whatever terminal key interrupts)
             return -1
