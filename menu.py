@@ -35,7 +35,11 @@ class MatzMenu(object):
         except KeyboardInterrupt:
             #here if user types control-C (or whatever terminal key interrupts)
             return -1
+        except EOFError:
+            return -1
         except:
             print("interrupt.. prob invalid selection:", str_selection)
             return -1
+
+
     
