@@ -23,7 +23,9 @@ def gbin(exe):
 
 def gcopy(mark,SRC,DEST):
     "gcopy mark from grade file named SRC to grade file named DEST"
-    rc = runit("%s -m %s %s %s" % (gbin("gcopy"), mark, DEST, SRC)) #,verbose=True,dry_run=False,debug=False)
+    cmd = "%s -m %s %s %s" % (gbin("gcopy"), mark, DEST, SRC)
+    print("run", cmd)
+    rc = runit(cmd) #,verbose=True,dry_run=False,debug=False)
     return(rc)
 
 def gstats(fn,width=5):
