@@ -1,5 +1,5 @@
 def update_sheet_data(query, column_name, datum, workbook_url):
-    "use query to find a row, then update cell at column with datum"
+    "use gspread, google sheets package, to query to find a row, then update cell at column with datum"
     import gspread
     import re
     from oauth2client.service_account import ServiceAccountCredentials
@@ -39,7 +39,7 @@ def update_sheet_data(query, column_name, datum, workbook_url):
             for id,line in zip(utorid_column[2:],first_column[2:]):
                 if len(id) > 0:
                     utorid_dict[id] = line
-            print(utorid_dict)
+            #print(utorid_dict)
         else:
             print("cannot find utorid column in first row of worksheet", col_names)
             return False
@@ -59,21 +59,21 @@ def update_sheet_data(query, column_name, datum, workbook_url):
     from prompt_for_input_string_with_completions_curses import prompt_for_input_string_with_completions_curses
 
     while True:
-        #prompt user for which student record to enter a mark for
-        query_string = prompt_for_input_string_with_completions_curses(
+        # prompt user for which student record to enter a mark for
+        student_utorid = prompt_for_input_string_with_completions_curses(
             "student id (completion on utorid, EOF to finish): ",
             20,
             utorid_dict)
     
-        print(query_string)
-        if query_string == None:
+        print(student_utorid)
+        if student_utorid == None:
             return None
-        elif len(query_string) == 0:
+        elif len(student_utorid) == 0:
             continue  # try query again..
 
-        #find the line in the sheet corresponding to query_string
+        #find the line in the sheet corresponding to student_utorid
         try:
-            query_re = re.compile(query_string)
+            query_re = re.compile(student_utorid)
             # find all the cells that match.. make sure only one before writing anything!
             cell_list = work_sheet.findall(query_re)
             if len(cell_list) == 1:
@@ -86,13 +86,14 @@ def update_sheet_data(query, column_name, datum, workbook_url):
             column_number = cell.col
             print("row", row_number,"col",column_number)
         except:
-            print(query, "not found (anyway, gspread.find throws)")
+            print("cell containing",student_utorid,"not found in sheet (well, gspread.find throws)")
             return False
 
         # finally, write the data into the sheet
         try:
             print("about to write", datum, " to row", row_number,"col",dest_column_number)
             work_sheet.update_cell(row_number, dest_column_number, datum)
+            del utorid_dict[student_utorid]
         except:
             print("failed to write", datum, " to row", row_number,"col",dest_column_number)
             return False
