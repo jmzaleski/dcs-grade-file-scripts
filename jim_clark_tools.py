@@ -51,9 +51,9 @@ def gen(fn):
     "run gen on grades file called fn"
     runit( "%s %s" % (gbin("gen"), fn))
 
-def gremove(fn,marks):
-    "remove the marks from fn"
-    runit( "%s -c -m %s %s" % (gbin("gremove"), marks, fn))
+def gremove(fn,mark):
+    "remove grade called mark from file fn"
+    runit( "%s -c -m %s %s" % (gbin("gremove"), mark, fn))
 
 def init(md,gbin):
     global mark_dir
