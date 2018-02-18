@@ -38,17 +38,11 @@ def update_sheet_data(column_name, datum, workbook_url):
         print(col_names)
         if "utorid" in col_names:
             utorid_column_number = col_names.index("utorid") + 1
-            #print("utorid_column_number",utorid_column_number)
             utorid_column = work_sheet.col_values(utorid_column_number)
-            #print("utorid_column", utorid_column)
             first_column = work_sheet.col_values(1)
-            #print("first_column", first_column)
-            #print(utorid_column[2:],first_column[2:])
             for id,line in zip(utorid_column[2:],first_column[2:]):
-                #print(id,line)
                 if len(id) > 0:
                     utorid_dict[id] = line
-            #print(utorid_dict)
         else:
             print("cannot find utorid column in first row of worksheet", col_names)
             return False
@@ -57,7 +51,7 @@ def update_sheet_data(column_name, datum, workbook_url):
             #watchit.. python array zero origin, worksheet column's one origin..
             dest_column_number = col_names.index(column_name) + 1 
         else:
-            print("is", column_name, "the name of a column of the sheet? cannot find", column_name, "in first row of worksheet", col_names)
+            print("is", column_name, "the name of a column of the sheet? cannot find", column_name, "in first row of jworksheet", col_names)
             return False
             
         print("found", column_name, "at dest_column_number", dest_column_number, "will update mark in that column")
