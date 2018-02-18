@@ -1,4 +1,6 @@
-def update_sheet_data(query, column_name, datum, workbook_url):
+#TODO: refactor so we have a function that just queries for and updates cell in sheet
+
+def update_sheet_data(column_name, datum, workbook_url):
     "use gspread, google sheets package, to query to find a row, then update cell at column with datum"
     import gspread
     import re
@@ -19,6 +21,8 @@ def update_sheet_data(query, column_name, datum, workbook_url):
         work_book = client.open_by_url(workbook_url)
     except:
         print("failed to open google sheet at", workbook_url)
+        import traceback,sys
+        traceback.print_exc(file=sys.stdout)
         return False
 
     # cheesy, but pretend the table is the first sheet in the workbook
@@ -34,9 +38,14 @@ def update_sheet_data(query, column_name, datum, workbook_url):
         print(col_names)
         if "utorid" in col_names:
             utorid_column_number = col_names.index("utorid") + 1
+            #print("utorid_column_number",utorid_column_number)
             utorid_column = work_sheet.col_values(utorid_column_number)
+            #print("utorid_column", utorid_column)
             first_column = work_sheet.col_values(1)
+            #print("first_column", first_column)
+            #print(utorid_column[2:],first_column[2:])
             for id,line in zip(utorid_column[2:],first_column[2:]):
+                #print(id,line)
                 if len(id) > 0:
                     utorid_dict[id] = line
             #print(utorid_dict)
@@ -48,12 +57,14 @@ def update_sheet_data(query, column_name, datum, workbook_url):
             #watchit.. python array zero origin, worksheet column's one origin..
             dest_column_number = col_names.index(column_name) + 1 
         else:
-            print("cannot find", column_name, "in first row of worksheet", col_names)
+            print("is", column_name, "the name of a column of the sheet? cannot find", column_name, "in first row of worksheet", col_names)
             return False
             
         print("found", column_name, "at dest_column_number", dest_column_number, "will update mark in that column")
     except:
         print("failed to find column_name", column_name, "in first row of sheet")
+        import traceback,sys
+        traceback.print_exc(file=sys.stdout)
         return False
 
     from prompt_for_input_string_with_completions_curses import prompt_for_input_string_with_completions_curses
@@ -114,22 +125,16 @@ def test():
 
     
 if __name__ == '__main__':
-    #test()
     def parse_positional_args():
         "parse the command line parameters of this program"
         import argparse
         parser = argparse.ArgumentParser()
         parser.add_argument("google_sheet_url", help="URL of google sheet. eg: https://docs.google.com/spreadsheets/stuff")
-        parser.add_argument("query", help="string to search for to find row to modify")
         parser.add_argument("column_name", help="name of sheet column to add mark to")
         parser.add_argument("datum", help="value to write into cell identified above")
         args = parser.parse_args()
         return args
 
     args = parse_positional_args()
-
-    update_sheet_data(query=args.query,
-                          column_name=args.column_name,
-                          datum=args.datum,
-                          workbook_url=args.google_sheet_url)
+    update_sheet_data(column_name=args.column_name, datum=args.datum,workbook_url=args.google_sheet_url)
 
