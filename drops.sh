@@ -18,7 +18,7 @@ source ./dot.sh
 
 test ! -z "$COURSE" || die COURSE env not found.. should be defined in ./dot.sh
 test ! -z "$SESSION" || die SESSION env not found.. should be defined in ./dot.sh
-CLASSLIST="CSC"$COURSE$SESSION
+CLASSLIST="CSC"$COURSE$SESSION-classlist
 test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
 
 #### assumes that the classlist has been updated already
