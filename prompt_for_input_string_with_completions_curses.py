@@ -26,20 +26,20 @@ def erase_completions(stdscr,height):
         stdscr.move(iy,1)
         stdscr.clrtoeol()
         
-def show_completions(stdscr,utorids,height,query,ix):
+def show_completions(stdscr,utorid_to_name_number,height,query,ix):
     "render the completions of query"
     if len(query) == 0:
         return
     iy = 3    #sorry.. top line is status, then ___, so start at line  3
-    for o in utorids.keys():
-        if o.startswith(query):
+    for utorid in utorid_to_name_number.keys():
+        if utorid.startswith(query):
             if iy > height-1:
                 break
             stdscr.move(iy,1)
             stdscr.clrtoeol()
-            stdscr.addstr(o)
+            stdscr.addstr(utorid)
             stdscr.move(iy,10)
-            stdscr.addstr(utorids[o])
+            stdscr.addstr(utorid_to_name_number[utorid])
             iy += 1
     stdscr.move(height-1,1)
     stdscr.addstr("_________________________________")
