@@ -10,7 +10,7 @@ source ./dot.sh
 test ! -z "$COURSE" || die COURSE env not found.. should be defined in ./dot.sh
 test ! -z "$SESSION" || die SESSION env not found.. should be defined in ./dot.sh
 
-CDF="CSC"$COURSE$SESSION
+CDF="CSC"$COURSE$SESSION-classlist
 
 CLASS=$CDF
 
@@ -35,6 +35,7 @@ do
 		die $i matched more than one line.
 	else
 		grep -i $i $CLASS | cut -d, -f6 >> $TMP
+		grep -i $i $CLASS 
 	fi
 done
 
@@ -43,9 +44,6 @@ for i in $(cat $TMP)
 do
 	concat="$i, $concat"
 done
-echo $concat
-
-exit 0
 
 echo
 echo
