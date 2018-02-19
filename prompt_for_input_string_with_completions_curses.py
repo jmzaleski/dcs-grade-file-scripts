@@ -187,21 +187,18 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
 
         #input loop..
         while True:
-            c1 = av.getch() 
-
-            av.update_status_line(c,query,ix) #debug originally, but kinda looks okay
+            c = av.getch() 
+            av.update_status_line(c,query,ix) 
             av.clear_warning_message()
                 
-            if av.is_lf(c): #end of line ish
+            if av.is_lf(c): #### end of line ish
                 if query in utorid_map.keys():
                     # done.. query is exactly one of the utorids..
                     break
 
-                # if we have a query which uniquely identifies one utorid we return it.
+                # completion is the longest prefix of the all the utorid's starting with query --
                 (is_whole,completion) = longest_common_prefix(utorid_map,query)
 
-                # completion is the longest prefix of the all the utorid's starting with query --
-                # but it might not be an entire utorid.
                 if is_whole:
                     query = completion
                     break
@@ -265,7 +262,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
         ############# end input loop..
 
         av.cleanup()
-        if av.is_eof(c):
+        if av.is_eof(c): #ya think? what else could they mean by entering ^d ?
             return None
         else:
             return query
