@@ -171,19 +171,17 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                         n += 1
                         
                 if n != 1: 
-                    refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
-                    msg = "query " + "`"  + query + "' does not identify a unique utorid.. enter again to return it anyway"
+                    msg = "query " + "`"  + query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
                     show_warning_message(stdscr,height,msg)
                     curses.beep()
-                    refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
                     c = stdscr.getch()
                     if c == curses.ascii.LF:
                         break
                     else:
-                        fake_ungetch_hack_flag = True
+                        # other than LF want to continue as normal.. ungetc..
                         #stdscr.ungetch(c) #groan.. no python binding for this
+                        fake_ungetch_hack_flag = True
                         clear_warning_message(stdscr,height)
-                        refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
                         continue
             
             elif  c == curses.ascii.EOT: #end of file, control-d
