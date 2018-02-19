@@ -7,11 +7,13 @@ class AppState:
         self.query = ''
         self.ix = 1
         
-    def start_of_line(self):
+    def clear_query(self):
+        "clear line"
         self.ix = 1
         self.query = ''
 
-    def append(self,c):
+    def add_char_to_query(self,c):
+        "user types a char which we add to query"
         self.query += chr(c)
         self.ix += 1
 
@@ -22,7 +24,7 @@ class AppState:
     def is_query_empty(self):
         return self.ix == 1
     
-    def bs(self):
+    def back_space(self):
         "bs = back space = remove char from RH end of query"
         self.query = self.query[:-1]
         self.ix = len(self.query)+1
@@ -205,7 +207,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
     # some old-school users might have DEL as interrupt key.
 
     try:
-        app_state.start_of_line()
+        app_state.clear_query()
         c = ord(' ')
         av.show_warning_message(initial_warning_message)
         av.refresh_view(utorid_map,prompt,c)
@@ -257,20 +259,17 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     curses.beep()
 
             elif av.is_bs(c): #backspace
-                # delete last char from query, erase on screen
                 if app_state.is_query_empty():
                     av.beep()
                 else:
-                    app_state.bs()
+                    app_state.back_space()
 
             elif av.is_nak(c): # control-u
                 av.beep()
-                # blow away query, erase everything
-                app_state.start_of_line()
+                app_state.clear_query()
             
             else:
-                # append c to query.
-                app_state.append(c)
+                app_state.add_char_to_query(c)
                 
             av.refresh_view(utorid_map,prompt,c)
 
