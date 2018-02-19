@@ -46,11 +46,13 @@ def show_completions(stdscr,utorid_to_name_number,height,query,ix):
     stdscr.move(height,ix)
 
 def show_warning_message(stdscr,height,msg):
+    "display msg below the input line"
     stdscr.move(height+1,1)
     stdscr.clrtoeol()
     stdscr.addstr(msg)
 
 def clear_warning_message(stdscr,height):
+    "clear warning line"
     stdscr.move(height+1,1)
     stdscr.clrtoeol()
 
@@ -64,18 +66,17 @@ def refresh_view(stdscr,utorids,height,prompt,c,query,ix):
     stdscr.addstr(prompt)
     stdscr.addstr(query)
     
-def longest_common_prefix(utorids,query):
+def longest_common_prefix(utorid_map,query):
     """
     return a tuple.. (flagTrueIfWholeCompletion,aStringPrefix) the flag tells if the prefix is the whole completion, the string is the prefix
     """
     if len(query) == 0:
         return (False,None)
-
     l = []
-    for o in utorids.keys():
+
+    for o in utorid_map.keys():
         if o.startswith(query):
             l.append(o)
-
     # forget it none of them start with query.
     if len(l) == 0:
         return (False,None)
@@ -104,7 +105,7 @@ def longest_common_prefix(utorids,query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return (True,prefix)
 
-def prompt_for_input_string_with_completions_curses(prompt,height,utorids,message):
+def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,initial_warning_message):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -126,35 +127,35 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
         ix = 1
         query = ''
         c = ord(' ')
-        refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+        show_warning_message(stdscr,height,initial_warning_message)
+        refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
+        #stdscr.move(height,ix)
 
-        # TODO: what to do if user hits return when query is not unique? Currently just return it.
-        # thinking about beeping and then insisting on control-enter (or something) to really return.
-
+        # TODO: what to do if user hits return when query is not unique?
+        # nasty hack here because ungetc doesn't work. So, if user hits return when query entered so far
+        # is not unique we ask to hit return again.. if user hits LF, then he really wants that query.
+        # hits anything else and what we would like to do is ungetc.. but it's busted, so instead we set
+        # fake_ungetch_hack_flag
         fake_ungetch_hack_flag = False
         first_time = True
         
         while True:
             if fake_ungetch_hack_flag:
+                #means that LF with non-unique query was entered previously.
                 fake_ungetch_hack_flag = False
             else:
                 c = stdscr.getch()
 
             update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
-            if first_time:
-                first_time = False
-                show_warning_message(stdscr,height,message)
-                #stdscr.move(height,ix)
-            else:
-                clear_warning_message(stdscr,height)
+            clear_warning_message(stdscr,height)
                 
             if c == curses.ascii.LF:
                 # we have it. query is exactly one of the utorids..
-                if query in utorids.keys():
+                if query in utorid_map.keys():
                     break
 
                 # if we have a query which uniquely identifies one utorid we return it.
-                (is_whole,completion) = longest_common_prefix(utorids,query)
+                (is_whole,completion) = longest_common_prefix(utorid_map,query)
 
                 # completion is the longest prefix of the all the utorid's starting with query --
                 # but it might not be an entire utorid.
@@ -165,24 +166,24 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
 
                 # check if query uniquely identifies someone?
                 n=0
-                for id in utorids:
+                for id in utorid_map:
                     if id.startswith(query):
                         n += 1
                         
                 if n != 1: 
-                    refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                    refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
                     msg = "query " + "`"  + query + "' does not identify a unique utorid.. enter again to return it anyway"
                     show_warning_message(stdscr,height,msg)
                     curses.beep()
-                    refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                    refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
                     c = stdscr.getch()
                     if c == curses.ascii.LF:
                         break
                     else:
                         fake_ungetch_hack_flag = True
-                        #stdscr.ungetch(c) #groan.. no python binding for this golden oldie
+                        #stdscr.ungetch(c) #groan.. no python binding for this
                         clear_warning_message(stdscr,height)
-                        refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                        refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
                         continue
             
             elif  c == curses.ascii.EOT: #end of file, control-d
@@ -190,14 +191,14 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
             
             elif c == curses.ascii.TAB: 
                 # TAB key set query to longest prefix amongst completions
-                (flg,completion) = longest_common_prefix(utorids,query)
+                (flg,completion) = longest_common_prefix(utorid_map,query)
                 if completion:
                     query = completion
                     c = ord(' ')
                     ix = len(query)+1
                 else:
                     curses.beep()
-                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
 
             # TODO: learn how to make sure stty options are in effect for editing?
             elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
@@ -207,7 +208,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
                     curses.beep()
                 else:
                     ix -= 1
-                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
 
             # this is getting on thin ice. stty determines which character "kills" all input
             elif c == curses.ascii.NAK: # aka ^U
@@ -216,13 +217,13 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
             
             else:
                 # append c to query.
                 query += chr(c)
                 ix += 1
-                refresh_view(stdscr,utorids,height,prompt,c,query,ix)
+                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
         
         curses.nocbreak()
         stdscr.keypad(False)
@@ -231,10 +232,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
         if c == 4:
             return None
         else:
-            # if query in utorids:
+            # if query in utorid_map:
             #     stdscr.move(1,1)
             #     stdscr.clrtoeol()
-            #     stdscr.addstr(utorids[query])
+            #     stdscr.addstr(utorid_map[query])
             return query
 
     except:
@@ -247,7 +248,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids,messag
 
 
 if __name__ == "__main__" :
-    utorids = {
+    utorid_map = {
     "autorid1": "desc1",
     "autorid2longer": "desc1",
     "butorid1": "desc1",
@@ -258,5 +259,5 @@ if __name__ == "__main__" :
     "c_xxxxx": "desc1",
     }
 
-    resp = prompt_for_input_string_with_completions_curses(">",10,utorids)
+    resp = prompt_for_input_string_with_completions_curses(">",10,utorid_map,"initial warning message")
     print(resp)
