@@ -6,14 +6,34 @@ class AppState:
         self.initial_message = initial_message
         self.query = ''
         self.ix = 1
+        
+    def start_of_line(self):
+        self.ix = 1
+        self.query = ''
+
+    def append(self,c):
+        self.query += chr(c)
+        self.ix += 1
+
+    def set_query(self,q):
+        self.query = q
+        self.ix = len(q)+1
+
+    def is_query_empty(self):
+        return self.ix == 1
+    
+    def bs(self):
+        "bs = back space = remove char from RH end of query"
+        self.query = self.query[:-1]
+        self.ix = len(self.query)+1
 
 import curses.ascii
 class AppViewer:
     "control the screen using curses"
 
-    def __init__(self, height, appState):
+    def __init__(self, height, app_state):
         self.height = height
-        self.appState = appState
+        self.app_state = app_state
         self.ungetc_buf_char = None
         import curses,curses.ascii
         self.stdscr = curses.initscr()
@@ -50,14 +70,16 @@ class AppViewer:
         self.stdscr.clrtoeol()
         self.stdscr.addstr(msg)
         
-    def update_status_line(self,c,query,ix):
+    def update_status_line(self,c):
         """
         render c (last char entered), query string so far, and horizontal char next
         into a status line display
         """
+        query = self.app_state.query
+        ix = self.app_state.ix
         self.stdscr.move(1,1)
         self.stdscr.clrtoeol()
-        self.stdscr.addstr(self.appState.query)
+        self.stdscr.addstr(self.app_state.query)
         self.stdscr.move(1,20)
         self.stdscr.addch(c)
         self.stdscr.move(1,25)
@@ -78,8 +100,10 @@ class AppViewer:
     def get_stdscr(self):
         return self.stdscr
         
-    def show_completions(self,utorid_to_name_number,query,ix):
+    def show_completions(self,utorid_to_name_number):
         "render the completions of query"
+        query = self.app_state.query
+        ix = self.app_state.ix
         if len(query) == 0:
             return
         iy = 3    #sorry.. top line is status, then ___, so start at line  3
@@ -102,15 +126,15 @@ class AppViewer:
         self.stdscr.move(self.height+1,1)
         self.stdscr.clrtoeol()
 
-    def refresh_view(self,utorids,prompt,c,query,ix):
+    def refresh_view(self,utorids,prompt,c):
         "redraw status and completion areas"
-        self.update_status_line(c,query,ix)
+        self.update_status_line(c)
         self.erase_completions()
-        self.show_completions(utorids,query,ix)
+        self.show_completions(utorids)
         self.stdscr.move(self.height,1)
         self.stdscr.clrtoeol()
         self.stdscr.addstr(prompt)
-        self.stdscr.addstr(query)
+        self.stdscr.addstr(self.app_state.query)
         
     # TODO: learn how to make sure stty options are in effect for editing?
 
@@ -181,28 +205,26 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
     # some old-school users might have DEL as interrupt key.
 
     try:
-        app_state.ix = 1
+        app_state.start_of_line()
         c = ord(' ')
         av.show_warning_message(initial_warning_message)
-        av.refresh_view(utorid_map,prompt,c,app_state.query,app_state.ix)
+        av.refresh_view(utorid_map,prompt,c)
 
         #input loop..
         while True:
             c = av.getch() 
-            av.update_status_line(c,app_state.query,app_state.ix) 
+            av.update_status_line(c)
             av.clear_warning_message()
                 
             if av.is_lf(c): #### end of line ish
                 if app_state.query in utorid_map.keys():
-                    # done.. query is exactly one of the utorids..
-                    break
+                    break  # done.. query is exactly one of the utorids..
 
                 # completion is the longest prefix of the all the utorid's starting with query --
                 (is_whole,completion) = longest_common_prefix(utorid_map,app_state.query)
 
                 if is_whole:
-                    app_state.query = completion
-                    app_state.query = completion
+                    app_state.set_query(completion)
                     break
 
                 # might not be complete, but still may uniquely identifies someone?
@@ -229,32 +251,28 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
             elif av.is_tab(c):
                 (flg,completion) = longest_common_prefix(utorid_map,app_state.query)
                 if completion:
-                    app_state.query = completion
+                    app_state.set_query(completion)
                     c = ord(' ')
-                    app_state.ix = len(app_state.query)+1
                 else:
                     curses.beep()
 
             elif av.is_bs(c): #backspace
                 # delete last char from query, erase on screen
-                app_state.query = app_state.query[:-1]
-                if app_state.ix == 1:
+                if app_state.is_query_empty():
                     av.beep()
                 else:
-                    app_state.ix -= 1
+                    app_state.bs()
 
             elif av.is_nak(c): # control-u
                 av.beep()
                 # blow away query, erase everything
-                app_state.query = ''
-                app_state.ix = 1
+                app_state.start_of_line()
             
             else:
                 # append c to query.
-                app_state.query += chr(c)
-                app_state.ix += 1
+                app_state.append(c)
                 
-            av.refresh_view(utorid_map,prompt,c,app_state.query,app_state.ix)
+            av.refresh_view(utorid_map,prompt,c)
 
         ############# end input loop..
 
