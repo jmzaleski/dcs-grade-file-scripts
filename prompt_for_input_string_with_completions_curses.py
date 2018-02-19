@@ -4,6 +4,8 @@ class AppState:
     "store stuff"
     def __init__(self, initial_message):
         self.initial_message = initial_message
+        self.query = ''
+        self.ix = 1
 
 import curses.ascii
 class AppViewer:
@@ -55,7 +57,7 @@ class AppViewer:
         """
         self.stdscr.move(1,1)
         self.stdscr.clrtoeol()
-        self.stdscr.addstr(query)
+        self.stdscr.addstr(self.appState.query)
         self.stdscr.move(1,20)
         self.stdscr.addch(c)
         self.stdscr.move(1,25)
@@ -171,46 +173,46 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
     """
     import curses.ascii
 
-    av = AppViewer(height,initial_warning_message)
-    #stdscr = av.get_stdscr()
+    app_state = AppState(initial_warning_message)
+    av = AppViewer(height,app_state)
 
     # TODO: users terminal setting stty(1) actually determine what special keys do what
     # eg: I like ^C for interrupt and DEL for backspace,
     # some old-school users might have DEL as interrupt key.
 
     try:
-        ix = 1
-        query = ''
+        app_state.ix = 1
         c = ord(' ')
         av.show_warning_message(initial_warning_message)
-        av.refresh_view(utorid_map,prompt,c,query,ix)
+        av.refresh_view(utorid_map,prompt,c,app_state.query,app_state.ix)
 
         #input loop..
         while True:
             c = av.getch() 
-            av.update_status_line(c,query,ix) 
+            av.update_status_line(c,app_state.query,app_state.ix) 
             av.clear_warning_message()
                 
             if av.is_lf(c): #### end of line ish
-                if query in utorid_map.keys():
+                if app_state.query in utorid_map.keys():
                     # done.. query is exactly one of the utorids..
                     break
 
                 # completion is the longest prefix of the all the utorid's starting with query --
-                (is_whole,completion) = longest_common_prefix(utorid_map,query)
+                (is_whole,completion) = longest_common_prefix(utorid_map,app_state.query)
 
                 if is_whole:
-                    query = completion
+                    app_state.query = completion
+                    app_state.query = completion
                     break
 
                 # might not be complete, but still may uniquely identifies someone?
                 n=0
                 for id in utorid_map:
-                    if id.startswith(query):
+                    if id.startswith(app_state.query):
                         n += 1
                         
                 if n != 1: 
-                    msg = "query " + "`"  + query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
+                    msg = "query " + "`"  + app_state.query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
                     av.show_warning_message(msg)
                     av.beep()
                     c = av.getch()
@@ -225,34 +227,34 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 break
             
             elif av.is_tab(c):
-                (flg,completion) = longest_common_prefix(utorid_map,query)
+                (flg,completion) = longest_common_prefix(utorid_map,app_state.query)
                 if completion:
-                    query = completion
+                    app_state.query = completion
                     c = ord(' ')
-                    ix = len(query)+1
+                    app_state.ix = len(app_state.query)+1
                 else:
                     curses.beep()
 
             elif av.is_bs(c): #backspace
                 # delete last char from query, erase on screen
-                query = query[:-1]
-                if ix == 1:
+                app_state.query = app_state.query[:-1]
+                if app_state.ix == 1:
                     av.beep()
                 else:
-                    ix -= 1
+                    app_state.ix -= 1
 
             elif av.is_nak(c): # control-u
                 av.beep()
                 # blow away query, erase everything
-                query = ''
-                ix = 1
+                app_state.query = ''
+                app_state.ix = 1
             
             else:
                 # append c to query.
-                query += chr(c)
-                ix += 1
+                app_state.query += chr(c)
+                app_state.ix += 1
                 
-            av.refresh_view(utorid_map,prompt,c,query,ix)
+            av.refresh_view(utorid_map,prompt,c,app_state.query,app_state.ix)
 
         ############# end input loop..
 
@@ -260,7 +262,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
         if av.is_eof(c): #ya think? what else could they mean by entering ^d ?
             return None
         else:
-            return query
+            return app_state.query
 
     except:
         curses.endwin()
