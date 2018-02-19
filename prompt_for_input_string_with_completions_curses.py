@@ -54,8 +54,6 @@ def clear_warning_message(stdscr,height):
     stdscr.move(height+1,1)
     stdscr.clrtoeol()
 
-
-    
 def refresh_view(stdscr,utorids,height,prompt,c,query,ix):
     "redraw status and completion areas"
     update_status_line(stdscr,height,c,query,ix)
@@ -106,7 +104,7 @@ def longest_common_prefix(utorids,query):
     if verbose: print("\r\nhere an_opt,prefix,prev_prefix",an_opt,prefix, prev_prefix)
     return (True,prefix)
 
-def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
+def prompt_for_input_string_with_completions_curses(prompt,height,utorids,message):
     """
     beware: first (as in novice) attempt at curses programming.
     Prompt for a character, and show completions matching the query so far.
@@ -134,6 +132,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
         # thinking about beeping and then insisting on control-enter (or something) to really return.
 
         fake_ungetch_hack_flag = False
+        first_time = True
         
         while True:
             if fake_ungetch_hack_flag:
@@ -142,7 +141,12 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorids):
                 c = stdscr.getch()
 
             update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
-            clear_warning_message(stdscr,height)
+            if first_time:
+                first_time = False
+                show_warning_message(stdscr,height,message)
+                #stdscr.move(height,ix)
+            else:
+                clear_warning_message(stdscr,height)
                 
             if c == curses.ascii.LF:
                 # we have it. query is exactly one of the utorids..

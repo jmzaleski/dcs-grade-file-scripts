@@ -3,7 +3,9 @@
 def update_sheet_data(column_name, datum, workbook_url):
     "use gspread, google sheets package, to query to find a row, then update cell at column with datum"
     import gspread
-    import re
+    import re,sys
+    import traceback
+    
     from oauth2client.service_account import ServiceAccountCredentials
 
     # see https://www.twilio.com/blog/2017/02/an-easy-way-to-read-and-write-to-a-google-spreadsheet-in-python.html
@@ -21,7 +23,6 @@ def update_sheet_data(column_name, datum, workbook_url):
         work_book = client.open_by_url(workbook_url)
     except:
         print("failed to open google sheet at", workbook_url)
-        import traceback,sys
         traceback.print_exc(file=sys.stdout)
         return False
 
@@ -57,18 +58,19 @@ def update_sheet_data(column_name, datum, workbook_url):
         print("found", column_name, "at dest_column_number", dest_column_number, "will update mark in that column")
     except:
         print("failed to find column_name", column_name, "in first row of sheet")
-        import traceback,sys
         traceback.print_exc(file=sys.stdout)
         return False
 
     from prompt_for_input_string_with_completions_curses import prompt_for_input_string_with_completions_curses
 
+    message = 'first entry..'
     while True:
         # prompt user for which student record to enter a mark for
         student_utorid = prompt_for_input_string_with_completions_curses(
             "student id (completion on utorid, EOF to finish): ",
             20,
-            utorid_dict)
+            utorid_dict,
+            message)
     
         print(student_utorid)
         if student_utorid == None:
@@ -80,6 +82,7 @@ def update_sheet_data(column_name, datum, workbook_url):
         try:
             query_re = re.compile(student_utorid)
             # find all the cells that match.. make sure only one before writing anything!
+            # TODO: this is slowish. at risk of gambling sheet is changing behind scripts back could search local copy instead.
             cell_list = work_sheet.findall(query_re)
             if len(cell_list) == 1:
                 cell = cell_list[0]
@@ -92,25 +95,22 @@ def update_sheet_data(column_name, datum, workbook_url):
             print("row", row_number,"col",column_number)
         except:
             print("cell containing",student_utorid,"not found in sheet (well, gspread.find throws)")
+            traceback.print_exc(file=sys.stdout)
             return False
 
         # finally, write the data into the sheet
         try:
             print("about to write", datum, " to row", row_number,"col",dest_column_number)
             work_sheet.update_cell(row_number, dest_column_number, datum)
+            #assuming only one paper in stack from student, delete utorid from the completion dict. helps with common prefixes like zh
+            message = 'last write to student_utorid ' + utorid_dict[student_utorid]
             del utorid_dict[student_utorid]
         except:
             print("failed to write", datum, " to row", row_number,"col",dest_column_number)
+            traceback.print_exc(file=sys.stdout)
             return False
             
     return True
-
-    # except:
-    #     import traceback,sys
-    #     print("failed to open sheet", workbook_url)
-    #     traceback.print_exc(file=sys.stdout)
-    #     exit(2)
-        
 
 def test():
     # example usage:
