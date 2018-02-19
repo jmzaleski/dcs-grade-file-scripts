@@ -12,6 +12,7 @@ class AppViewer:
     def __init__(self, height, appState):
         self.height = height
         self.appState = appState
+        self.ungetc_buf_char = None
         import curses,curses.ascii
         self.stdscr = curses.initscr()
         curses.cbreak()
@@ -26,8 +27,17 @@ class AppViewer:
         curses.endwin()
         
     def getch(self):
-        return self.stdscr.getch()
-    
+        if self.ungetc_buf_char:
+            c = self.ungetc_buf_char
+            self.ungetc_buf_char = None
+            return c
+        else:
+            return self.stdscr.getch()
+
+    def ungetch(self,c):
+        "work around python curses ungetc not working"
+        self.ungetc_buf_char = c
+        
     def beep(self):
         import curses
         curses.beep()
@@ -99,6 +109,8 @@ class AppViewer:
         self.stdscr.clrtoeol()
         self.stdscr.addstr(prompt)
         self.stdscr.addstr(query)
+        
+    # TODO: learn how to make sure stty options are in effect for editing?
 
     def is_eof(self,c):
         return c == curses.ascii.EOT
@@ -173,27 +185,16 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
         av.show_warning_message(initial_warning_message)
         av.refresh_view(utorid_map,prompt,c,query,ix)
 
-        # TODO: what to do if user hits return when query is not unique?
-        # nasty hack here because ungetc doesn't work. So, if user hits return when query entered so far
-        # is not unique we ask to hit return again.. if user hits LF, then he really wants that query.
-        # hits anything else and what we would like to do is ungetc.. but it's busted, so instead we set
-        # fake_ungetch_hack_flag
-        fake_ungetch_hack_flag = False
-        first_time = True
-        
+        #input loop..
         while True:
-            if fake_ungetch_hack_flag:
-                #means that LF with non-unique query was entered previously.
-                fake_ungetch_hack_flag = False
-            else:
-                c = av.getch()
+            c1 = av.getch() 
 
             av.update_status_line(c,query,ix) #debug originally, but kinda looks okay
             av.clear_warning_message()
                 
-            if av.is_lf(c):
-                # we have it. query is exactly one of the utorids..
+            if av.is_lf(c): #end of line ish
                 if query in utorid_map.keys():
+                    # done.. query is exactly one of the utorids..
                     break
 
                 # if we have a query which uniquely identifies one utorid we return it.
@@ -201,12 +202,11 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
 
                 # completion is the longest prefix of the all the utorid's starting with query --
                 # but it might not be an entire utorid.
-                # I'm thinking if the prefix is not an entire completion we should beep and demur.
                 if is_whole:
                     query = completion
                     break
 
-                # check if query uniquely identifies someone?
+                # might not be complete, but still may uniquely identifies someone?
                 n=0
                 for id in utorid_map:
                     if id.startswith(query):
@@ -222,12 +222,11 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                         break
                     else:
                         # other than LF want to continue as normal.. ungetc..
-                        #stdscr.ungetch(c) #groan.. no python binding for this
-                        fake_ungetch_hack_flag = True
+                        av.ungetch(c)
                         av.clear_warning_message()
                         continue
             
-            elif  av.is_eof(c):
+            elif  av.is_eof(c): #end of file'ish
                 break
             
             elif av.is_tab(c):
@@ -241,8 +240,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     curses.beep()
                 av.refresh_view(utorid_map,prompt,c,query,ix)
 
-            # TODO: learn how to make sure stty options are in effect for editing?
-            elif av.is_bs(c):
+            elif av.is_bs(c): #backspace
                 # delete last char from query, erase on screen
                 query = query[:-1]
                 if ix == 1:
@@ -251,7 +249,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     ix -= 1
                 av.refresh_view(utorid_map,prompt,c,query,ix)
 
-            elif av.is_nak(c):
+            elif av.is_nak(c): # control-u
                 av.beep()
                 # blow away query, erase everything
                 query = ''
@@ -263,6 +261,8 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 query += chr(c)
                 ix += 1
                 av.refresh_view(utorid_map,prompt,c,query,ix)
+
+        ############# end input loop..
 
         av.cleanup()
         if av.is_eof(c):
