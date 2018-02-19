@@ -1,70 +1,100 @@
 #!/usr/bin/env python
 
-def update_status_line(stdscr,height,c,query,ix):
-    """
-    render c (last char entered), query string so far, and horizontal char next
-    into a status line display
-    """
-    stdscr.move(1,1)
-    stdscr.clrtoeol()
-    stdscr.addstr(query)
-    stdscr.move(1,20)
-    stdscr.addch(c)
-    stdscr.move(1,25)
-    s = "%s" % int(c)
-    stdscr.addstr(s)
-    stdscr.move(2,1)
-    stdscr.addstr("_________________________________")
-    stdscr.move(height,ix)
+class AppState:
+    "store stuff"
+    def __init__(self, initial_message):
+        self.initial_message = initial_message
 
+class AppViewer:
+    "control the screen using curses"
 
-def erase_completions(stdscr,height):
-    "nuke completion area of display"
-    iy = height-1
-    while iy > 3:
-        iy -= 1
-        stdscr.move(iy,1)
-        stdscr.clrtoeol()
+    def __init__(self, height, appState):
+        self.height = height
+        self.appState = appState
+        import curses,curses.ascii
+        self.stdscr = curses.initscr()
+        curses.cbreak()
+        self.stdscr.keypad(True) #doesn't seem to help
+        curses.noecho()
+
+    def cleanup(self):
+        self.stdscr.keypad(False)
+        import curses,curses.ascii #have to do this over and over??
+        curses.nocbreak()
+        curses.echo()
+        curses.endwin()
         
-def show_completions(stdscr,utorid_to_name_number,height,query,ix):
-    "render the completions of query"
-    if len(query) == 0:
-        return
-    iy = 3    #sorry.. top line is status, then ___, so start at line  3
-    for utorid in utorid_to_name_number.keys():
-        if utorid.startswith(query):
-            if iy > height-1:
-                break
-            stdscr.move(iy,1)
-            stdscr.clrtoeol()
-            stdscr.addstr(utorid)
-            stdscr.move(iy,10)
-            stdscr.addstr(utorid_to_name_number[utorid])
-            iy += 1
-    stdscr.move(height-1,1)
-    stdscr.addstr("_________________________________")
-    stdscr.move(height,ix)
+    def getch(self):
+        return self.stdscr.getch()
+        
+    def show_warning_message(self,msg):
+        "display msg below the input line"
+        self.stdscr.move(self.height+1,1)
+        self.stdscr.clrtoeol()
+        self.stdscr.addstr(msg)
+        
+    def update_status_line(self,c,query,ix):
+        """
+        render c (last char entered), query string so far, and horizontal char next
+        into a status line display
+        """
+        self.stdscr.move(1,1)
+        self.stdscr.clrtoeol()
+        self.stdscr.addstr(query)
+        self.stdscr.move(1,20)
+        self.stdscr.addch(c)
+        self.stdscr.move(1,25)
+        s = "%s" % int(c)
+        self.stdscr.addstr(s)
+        self.stdscr.move(2,1)
+        self.stdscr.addstr("_________________________________")
+        self.stdscr.move(self.height,ix)
+      
+    def erase_completions(self):
+        "nuke completion area of display"
+        iy = self.height-1
+        while iy > 3:
+            iy -= 1
+            self.stdscr.move(iy,1)
+            self.stdscr.clrtoeol()
 
-def show_warning_message(stdscr,height,msg):
-    "display msg below the input line"
-    stdscr.move(height+1,1)
-    stdscr.clrtoeol()
-    stdscr.addstr(msg)
+    def get_stdscr(self):
+        return self.stdscr
+        
+    def show_completions(self,utorid_to_name_number,query,ix):
+        "render the completions of query"
+        if len(query) == 0:
+            return
+        iy = 3    #sorry.. top line is status, then ___, so start at line  3
+        for utorid in utorid_to_name_number.keys():
+            if utorid.startswith(query):
+                if iy > self.height-1:
+                    break
+                self.stdscr.move(iy,1)
+                self.stdscr.clrtoeol()
+                self.stdscr.addstr(utorid)
+                self.stdscr.move(iy,10)
+                self.stdscr.addstr(utorid_to_name_number[utorid])
+                iy += 1
+                self.stdscr.move(self.height-1,1)
+                self.stdscr.addstr("_________________________________")
+                self.stdscr.move(self.height,ix)
 
-def clear_warning_message(stdscr,height):
-    "clear warning line"
-    stdscr.move(height+1,1)
-    stdscr.clrtoeol()
 
-def refresh_view(stdscr,utorids,height,prompt,c,query,ix):
-    "redraw status and completion areas"
-    update_status_line(stdscr,height,c,query,ix)
-    erase_completions(stdscr,height)
-    show_completions(stdscr,utorids,height,query,ix)
-    stdscr.move(height,1)
-    stdscr.clrtoeol()
-    stdscr.addstr(prompt)
-    stdscr.addstr(query)
+    def clear_warning_message(self):
+        "clear warning line"
+        self.stdscr.move(self.height+1,1)
+        self.stdscr.clrtoeol()
+
+    def refresh_view(self,utorids,prompt,c,query,ix):
+        "redraw status and completion areas"
+        self.update_status_line(c,query,ix)
+        self.erase_completions()
+        self.show_completions(utorids,query,ix)
+        self.stdscr.move(self.height,1)
+        self.stdscr.clrtoeol()
+        self.stdscr.addstr(prompt)
+        self.stdscr.addstr(query)
     
 def longest_common_prefix(utorid_map,query):
     """
@@ -111,13 +141,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
     Prompt for a character, and show completions matching the query so far.
     Tab extends query so far with longest common completion.
     """
-    import curses
     import curses.ascii
 
-    stdscr = curses.initscr()
-    curses.cbreak()
-    stdscr.keypad(True) #doesn't seem to help
-    curses.noecho()
+    av = AppViewer(height,initial_warning_message)
+    #stdscr = av.get_stdscr()
 
     # TODO: users terminal setting stty(1) actually determine what special keys do what
     # eg: I like ^C for interrupt and DEL for backspace,
@@ -127,8 +154,8 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
         ix = 1
         query = ''
         c = ord(' ')
-        show_warning_message(stdscr,height,initial_warning_message)
-        refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
+        av.show_warning_message(initial_warning_message)
+        av.refresh_view(utorid_map,prompt,c,query,ix)
         #stdscr.move(height,ix)
 
         # TODO: what to do if user hits return when query is not unique?
@@ -144,10 +171,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 #means that LF with non-unique query was entered previously.
                 fake_ungetch_hack_flag = False
             else:
-                c = stdscr.getch()
+                c = av.getch()
 
-            update_status_line(stdscr,height,c,query,ix) #debug originally, but kinda looks okay
-            clear_warning_message(stdscr,height)
+            av.update_status_line(c,query,ix) #debug originally, but kinda looks okay
+            av.clear_warning_message()
                 
             if c == curses.ascii.LF:
                 # we have it. query is exactly one of the utorids..
@@ -172,16 +199,17 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                         
                 if n != 1: 
                     msg = "query " + "`"  + query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
-                    show_warning_message(stdscr,height,msg)
+                    av.show_warning_message(msg)
+
                     curses.beep()
-                    c = stdscr.getch()
+                    c = av.getch()
                     if c == curses.ascii.LF:
                         break
                     else:
                         # other than LF want to continue as normal.. ungetc..
                         #stdscr.ungetch(c) #groan.. no python binding for this
                         fake_ungetch_hack_flag = True
-                        clear_warning_message(stdscr,height)
+                        av.clear_warning_message()
                         continue
             
             elif  c == curses.ascii.EOT: #end of file, control-d
@@ -196,7 +224,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     ix = len(query)+1
                 else:
                     curses.beep()
-                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
+                av.refresh_view(utorid_map,prompt,c,query,ix)
 
             # TODO: learn how to make sure stty options are in effect for editing?
             elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
@@ -206,7 +234,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     curses.beep()
                 else:
                     ix -= 1
-                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
+                av.refresh_view(utorid_map,prompt,c,query,ix)
 
             # this is getting on thin ice. stty determines which character "kills" all input
             elif c == curses.ascii.NAK: # aka ^U
@@ -215,25 +243,18 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
+                av.refresh_view(utorid_map,prompt,c,query,ix)
             
             else:
                 # append c to query.
                 query += chr(c)
                 ix += 1
-                refresh_view(stdscr,utorid_map,height,prompt,c,query,ix)
-        
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-        if c == 4:
+                av.refresh_view(utorid_map,prompt,c,query,ix)
+
+        av.cleanup()
+        if c == curses.ascii.EOT: # 4?
             return None
         else:
-            # if query in utorid_map:
-            #     stdscr.move(1,1)
-            #     stdscr.clrtoeol()
-            #     stdscr.addstr(utorid_map[query])
             return query
 
     except:
