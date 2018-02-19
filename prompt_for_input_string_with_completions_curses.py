@@ -5,6 +5,7 @@ class AppState:
     def __init__(self, initial_message):
         self.initial_message = initial_message
 
+import curses.ascii
 class AppViewer:
     "control the screen using curses"
 
@@ -26,6 +27,10 @@ class AppViewer:
         
     def getch(self):
         return self.stdscr.getch()
+    
+    def beep(self):
+        import curses
+        curses.beep()
         
     def show_warning_message(self,msg):
         "display msg below the input line"
@@ -80,7 +85,6 @@ class AppViewer:
                 self.stdscr.addstr("_________________________________")
                 self.stdscr.move(self.height,ix)
 
-
     def clear_warning_message(self):
         "clear warning line"
         self.stdscr.move(self.height+1,1)
@@ -95,6 +99,18 @@ class AppViewer:
         self.stdscr.clrtoeol()
         self.stdscr.addstr(prompt)
         self.stdscr.addstr(query)
+
+    def is_eof(self,c):
+        return c == curses.ascii.EOT
+    def is_lf(self,c):
+        return c == curses.ascii.LF
+    def is_tab(self,c):
+        return c == curses.ascii.TAB
+    def is_nak(self,c):
+        # this is getting on thin ice. stty determines which character "kills" all input ^U for me..
+        return c == curses.ascii.NAK
+    def is_bs(self,c):
+        return (c == curses.ascii.BS) or (c == curses.ascii.DEL) # backspace on my keyboard??
     
 def longest_common_prefix(utorid_map,query):
     """
@@ -156,7 +172,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
         c = ord(' ')
         av.show_warning_message(initial_warning_message)
         av.refresh_view(utorid_map,prompt,c,query,ix)
-        #stdscr.move(height,ix)
 
         # TODO: what to do if user hits return when query is not unique?
         # nasty hack here because ungetc doesn't work. So, if user hits return when query entered so far
@@ -176,7 +191,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
             av.update_status_line(c,query,ix) #debug originally, but kinda looks okay
             av.clear_warning_message()
                 
-            if c == curses.ascii.LF:
+            if av.is_lf(c):
                 # we have it. query is exactly one of the utorids..
                 if query in utorid_map.keys():
                     break
@@ -201,9 +216,9 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     msg = "query " + "`"  + query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
                     av.show_warning_message(msg)
 
-                    curses.beep()
+                    av.beep()
                     c = av.getch()
-                    if c == curses.ascii.LF:
+                    if av.is_lf(c):
                         break
                     else:
                         # other than LF want to continue as normal.. ungetc..
@@ -212,10 +227,10 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                         av.clear_warning_message()
                         continue
             
-            elif  c == curses.ascii.EOT: #end of file, control-d
+            elif  av.is_eof(c):
                 break
             
-            elif c == curses.ascii.TAB: 
+            elif av.is_tab(c):
                 # TAB key set query to longest prefix amongst completions
                 (flg,completion) = longest_common_prefix(utorid_map,query)
                 if completion:
@@ -227,19 +242,17 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 av.refresh_view(utorid_map,prompt,c,query,ix)
 
             # TODO: learn how to make sure stty options are in effect for editing?
-            elif c == curses.ascii.BS or c == curses.ascii.DEL: # backspace on my keyboard??
+            elif av.is_bs(c):
                 # delete last char from query, erase on screen
                 query = query[:-1]
                 if ix == 1:
-                    curses.beep()
+                    av.beep()
                 else:
                     ix -= 1
                 av.refresh_view(utorid_map,prompt,c,query,ix)
 
-            # this is getting on thin ice. stty determines which character "kills" all input
-            elif c == curses.ascii.NAK: # aka ^U
-                assert(curses.ascii.isctrl(c))
-                curses.beep()
+            elif av.is_nak(c):
+                av.beep()
                 # blow away query, erase everything
                 query = ''
                 ix = 1
@@ -252,7 +265,7 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 av.refresh_view(utorid_map,prompt,c,query,ix)
 
         av.cleanup()
-        if c == curses.ascii.EOT: # 4?
+        if av.is_eof(c):
             return None
         else:
             return query
