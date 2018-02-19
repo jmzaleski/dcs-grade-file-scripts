@@ -212,7 +212,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                 if n != 1: 
                     msg = "query " + "`"  + query + "' does not identify a unique utorid.. hit enter again to return it anyway: "
                     av.show_warning_message(msg)
-
                     av.beep()
                     c = av.getch()
                     if av.is_lf(c):
@@ -221,13 +220,11 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                         # other than LF want to continue as normal.. ungetc..
                         av.ungetch(c)
                         av.clear_warning_message()
-                        continue
             
             elif  av.is_eof(c): #end of file'ish
                 break
             
             elif av.is_tab(c):
-                # TAB key set query to longest prefix amongst completions
                 (flg,completion) = longest_common_prefix(utorid_map,query)
                 if completion:
                     query = completion
@@ -235,7 +232,6 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     ix = len(query)+1
                 else:
                     curses.beep()
-                av.refresh_view(utorid_map,prompt,c,query,ix)
 
             elif av.is_bs(c): #backspace
                 # delete last char from query, erase on screen
@@ -244,20 +240,19 @@ def prompt_for_input_string_with_completions_curses(prompt,height,utorid_map,ini
                     av.beep()
                 else:
                     ix -= 1
-                av.refresh_view(utorid_map,prompt,c,query,ix)
 
             elif av.is_nak(c): # control-u
                 av.beep()
                 # blow away query, erase everything
                 query = ''
                 ix = 1
-                av.refresh_view(utorid_map,prompt,c,query,ix)
             
             else:
                 # append c to query.
                 query += chr(c)
                 ix += 1
-                av.refresh_view(utorid_map,prompt,c,query,ix)
+                
+            av.refresh_view(utorid_map,prompt,c,query,ix)
 
         ############# end input loop..
 
