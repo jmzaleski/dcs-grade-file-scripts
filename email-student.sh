@@ -10,13 +10,13 @@ source ./dot.sh
 test ! -z "$COURSE" || die COURSE env not found.. should be defined in ./dot.sh
 test ! -z "$SESSION" || die SESSION env not found.. should be defined in ./dot.sh
 
-CDF="CSC"$COURSE$SESSION-classlist
+CDF="CSC"$COURSE$SESSION
 
-CLASS=$CDF
+CLASS=$CDF-classlist
 
 test -f $CLASS || die cannot open $CLASS
 
-LIST=$CLASS-empty
+LIST="$CDF-empty"
 TAFILE=TA
 TMP=/tmp/em$$
 cat > $TMP < /dev/null
@@ -35,7 +35,7 @@ do
 		die $i matched more than one line.
 	else
 		grep -i $i $CLASS | cut -d, -f6 >> $TMP
-		grep -i $i $CLASS 
+		grep -i $i $LIST
 	fi
 done
 
