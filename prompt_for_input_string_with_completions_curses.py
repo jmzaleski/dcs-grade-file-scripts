@@ -24,7 +24,7 @@ class AppState:
         self.ix = len(q)+1
 
     def query_in_completion_map(self):
-        return self.query in utorid_map.keys()        
+        return self.query in self.utorid_map.keys()        
 
     def is_query_empty(self):
         return self.ix == 1
@@ -41,13 +41,11 @@ class AppState:
         if len(self.query) == 0:
             return (False,None)
         l = []
-
         for o in self.utorid_map.keys():
             if o.startswith(self.query):
-                l.append(o)
-        # forget it none of them start with query.
+                l.append(o)        
         if len(l) == 0:
-            return (False,None)
+            return (False,None) # forget it none of them start with query.
 
         # an arbitrary utorid which startswith query
         an_opt = l[0] 
@@ -60,7 +58,7 @@ class AppState:
         verbose = False
         for ix in range(len(self.query),len(an_opt)+1):
             prev_prefix = prefix
-            prefix = an_opt[:ix] #save longest so far..
+            prefix = an_opt[:ix]     # remember longest so far
             assert(len(prefix)==ix)
             if verbose: print("\r\nix",ix,"prefix", prefix)
             for o in l:
