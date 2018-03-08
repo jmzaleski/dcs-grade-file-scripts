@@ -80,14 +80,14 @@ def update_sheet_data(column_name, datum, workbook_url):
 
         #find the line in the sheet corresponding to student_utorid
         try:
-            query_re = re.compile(student_utorid)
+            query_re = re.compile("^" + student_utorid + "$")
             # find all the cells that match.. make sure only one before writing anything!
             # TODO: this is slowish. at risk of gambling sheet is changing behind scripts back could search local copy instead.
             cell_list = work_sheet.findall(query_re)
             if len(cell_list) == 1:
                 cell = cell_list[0]
             else:
-                print("multiple rows, skip somehow")
+                print("multiple rows, skip somehow:", cell_list)
                 continue
 
             row_number = cell.row
