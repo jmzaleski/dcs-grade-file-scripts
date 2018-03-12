@@ -81,13 +81,16 @@ def update_sheet_data(column_name, datum, workbook_url):
         #find the line in the sheet corresponding to student_utorid
         try:
             query_re = re.compile("^" + student_utorid + "$")
+            #query_re = re.compile(student_utorid ) #this is busted when a query matches stuff in multiple cells (doh)
             # find all the cells that match.. make sure only one before writing anything!
             # TODO: this is slowish. at risk of gambling sheet is changing behind scripts back could search local copy instead.
+            # TODO: is there a way of searching just a column instead of all cells?
             cell_list = work_sheet.findall(query_re)
-            if len(cell_list) == 1:
+            if cell_list != None and len(cell_list) == 1:
                 cell = cell_list[0]
             else:
-                print("multiple rows, skip somehow:", cell_list)
+                print("nothing or multiple rows, skip somehow:", cell_list)
+                input("PROBLEM: hit enter to continue:")
                 continue
 
             row_number = cell.row
