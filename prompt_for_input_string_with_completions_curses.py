@@ -77,7 +77,7 @@ class AppState:
         # completion is the longest prefix of the all the utorid's starting with query --
         (is_whole,completion) = self.longest_common_prefix()
         if is_whole:
-             app_state.set_query(completion)
+             self.set_query(completion)
              return True
         # might not be complete, but still may uniquely identifies someone?
         n=0
