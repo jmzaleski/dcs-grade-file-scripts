@@ -1,6 +1,6 @@
 #!/opt/local/bin/python3.5
 
-EMPTY="CSC300H1F-empty"
+EMPTY="CSC300H1S-empty"
 R_EMPTY="r-empty"        # yucky hack a grades file listing all the reading submissions
 
 # collect all reading submission marks in this file
@@ -12,18 +12,13 @@ FINAL = "fin"   # name of final grades file AND also the name of the forumula th
 LIST=[
     "a1",    # downloaded from a1r google sheet   (using fetch_ta_marks.py)
     "a2",    # downloaded from a2r google sheet   (using fetch_ta_marks.py)
-    "a3",
-    "deb",
+#    "a3",
+#    "deb",
     "p_tu",  # downloaded from tutorial-participation sheet  (using fetch_ta_marks.py)
-    "a4",
+#    "a4",
     # "exam"
+    "r"
     ]
-
-# section 1 reading grades files
-R1=[ "r1", "r2", "r4", "r5", "r6", "r7", "r8","r9"]
-
-# section 2 reading grades files
-R5=[ "r1", "r2", "r4", "r5", "r6", "r7", "r8","r9"]
 
 def mark_file_name_generator3(quiz_dir,suffix,list):
     "generator that turns mark names into file names following convention that have same suffix"
@@ -79,8 +74,8 @@ def check_input_grades_files():
     print('glinting.. ', end='')
     sys.stdout.flush()
     for (m,fn) in itertools.chain(
-            mark_file_name_generator3(mark_dir,"-0101",R1),
-            mark_file_name_generator3(mark_dir,"-5101",R5),
+#            mark_file_name_generator3(mark_dir,"-0101",R1),
+#            mark_file_name_generator3(mark_dir,"-5101",R5),
             mark_file_name_generator3(mark_dir,"",LIST)
             ):
         if not os.path.isfile(fn):
@@ -105,7 +100,7 @@ def calculate_reading_grade(r1,r5,r_empty,read):
         print("failed to copy",r_empty,"to",read)
         exit(5)
 
-    # gcopy copies the reading mark for each week into grade file R
+    # gcopy copies the reading mark for each week into grade file read
     for (m,fn) in itertools.chain(
             mark_file_name_generator3(mark_dir,"-0101",r1),
             mark_file_name_generator3(mark_dir,"-5101",r5)
@@ -113,7 +108,7 @@ def calculate_reading_grade(r1,r5,r_empty,read):
         print("about to: gcopy", m,"from",fn,"to", read)
         if jim_clark_tools.gcopy(m,fn,read):
             print("gcopy", m, fn, read, "has failed")
-            exit(2)
+            exit(0)
     #generats r, the total reading/lec participation mark
     jim_clark_tools.gen(read) 
 
@@ -175,7 +170,7 @@ EXAM="exam-raw"
 EXAM_MARK="exam"
 
 check_input_grades_files()
-calculate_reading_grade(R1,R5,R_EMPTY,READ)
+#calculate_reading_grade(R1,R5,R_EMPTY,READ)
 backup_if_exists(TERM)
 calculate_term_grade2(mark_dir, EMPTY, LIST + [READ], TERM)
 
@@ -185,7 +180,7 @@ calculate_term_grade2(mark_dir, EMPTY, LIST + [READ], TERM)
    
 
 backup_if_exists(FIN)
-calculate_final_grade(TERM,EXAM_MARK,EXAM,FIN)
+#calculate_final_grade(TERM,EXAM_MARK,EXAM,FIN)
 
 term_to_post = TERM + "-cdf"
 fin_clean = FIN + "-clean"
