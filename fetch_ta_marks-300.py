@@ -7,56 +7,84 @@
 def parse_positional_args():
     "parse the command line parameters of this program"
     import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--yes", action='store_true', help="fetch all grades files")
+    parser = argparse.ArgumentParser(description='download some or all grade files')
+    parser.add_argument("--all", action='store_true', help="fetch all grades files")
+    parser.add_argument('grade_files_to_fetch', nargs='*',
+                        help='name of grade file to fetch')
     args = parser.parse_args()
+    print("--all", args.all, "grade_file_list", args.grade_files_to_fetch)
     return args
     
-
 if __name__ == '__main__':
-    yes = parse_positional_args().yes
     import sys
     sys.path.append('/home/matz/git/dcs-grade-file-scripts')
     from get_google_sheet_as_jim_clarke_grades_file import write_grade_file_from_csv_metadata_and_marks 
-    from get_google_sheet_as_jim_clarke_grades_file import get_sheet_data
+    from get_google_sheet_as_jim_clarke_grades_file import get_sheet_data_from_url
     import os
+    
+    args = parse_positional_args()
+    always_download = args.all
+    grade_file_list = args.grade_files_to_fetch
+    if always_download and len(grade_file_list)>0:
+        print("usage error: cannot both say --all and name files")
+        exit(0)
+    #TODO: figure out how to factor this!!
     tab = {
-        "exam-raw" : "exam-raw",
-        "tutorial-participation" : "p_tu",
-        "Debate" : "deb",
-        "a1r" : "a1",
-        "a2r" : "a2",
-        "a3" : "a3",
-        "a4" : "a4"
+        "https://docs.google.com/spreadsheets/d/1GvNb3ZzvIPERTH4LOxJXsn6M7ElnZX-lx_nmrCNLcj4/edit#gid=1371474907" : "p_tu",
+        "https://docs.google.com/spreadsheets/d/19Gq_oL6WgelKszYJxhZf0YBuw1fgStt5wuoHuqbYWPs/edit#gid=1371474907" : "r",
+        "https://docs.google.com/spreadsheets/d/1ZMK-85tRid15rou23mhlO0d5CURhSxtrfKqWRzT0-7c/edit#gid=475080676" : "a1",
+        "https://docs.google.com/spreadsheets/d/1DLoBa2cGXAKBi9GiYHDcoSsouT7gRBL9QmrAXhJdyFE/edit#gid=475080676" : "a1r",
+        "https://docs.google.com/spreadsheets/d/1iBEIbK8jrqujSVB1bXtYJGEGR1amsRujr96navUC1c8/edit#gid=790547393" : "a2",
+        "https://docs.google.com/spreadsheets/d/1LggVO5-aTkDHOjTWDhTEIfbciVoBrN_ZLVyxvQGBdlU/edit#gid=790547393" : "a2r",
+        "https://docs.google.com/spreadsheets/d/1NceIp3zPkVICqzhi73WuZjgt11YgHkLJyWr47YyY8N8/edit#gid=790547393" : "a3",
         }
-    #don't overwrite grades files!
+
+    #untab lousy name for reverse mapping
+    untab = {}
+    for k in tab.keys():
+        untab[tab[k]] = k
+    print(untab)
+
+    # if grade files have been named on command line, just do those. o/w do them all.
+    if len(grade_file_list) > 0:
+        for gf in grade_file_list:
+            if not gf in list(untab.keys()):
+                print(gf,"unknown key", untab.keys())
+                exit(2)
+        l = grade_file_list
+    else:
+        l = list(untab.keys())
+        l.sort()
+    print(l)
+    # don't overwrite grades files!
     write_file = {}
-    l = list(tab.values())
-    l.sort()
-    for ofn in l:
-        if yes:
-            write_file[ofn] = True
-            continue
-        if not os.path.isfile(ofn):
-            write_file[ofn] = True
-            continue
-        # too chicken to overwrite this file, so ask
-        resp = input( "are you sure you want to overwrite " + ofn + " ? [yY]* >")
-        if len(resp) == 0:
-            write_file[ofn] = False
-        elif resp.startswith("y") or resp.startswith("Y"):
+    for k in untab.keys():
+        if always_download:
             write_file[ofn] = True
         else:
-           write_file[ofn] = False
+            write_file[k] = False
+
+    if not always_download:
+        for ofn in l:
+            if not os.path.isfile(ofn):
+                write_file[ofn] = True
+                continue
+            # too chicken to overwrite this file, so ask
+            resp = input( "are you sure you want to overwrite " + ofn + " ? [yY]* >")
+            if len(resp) == 0:
+                write_file[ofn] = False
+            elif resp.startswith("y") or resp.startswith("Y"):
+                write_file[ofn] = True
 
     #REAL work
     for sheet_name in tab.keys():
         ofn = tab[sheet_name]
-        if not yes or not write_file[ofn]:
-            print("skip fetch of", ofn)
-            continue
+        if not always_download:
+            if not write_file[ofn]:  
+                print("skip fetch of", ofn)
+                continue
         print("about to download google sheet", sheet_name, "to file", ofn)
-        d = get_sheet_data(sheet_name)
+        d = get_sheet_data_from_url(sheet_name)
         write_grade_file_from_csv_metadata_and_marks(d, ofn)
 
     for ofn in tab.values():
@@ -65,18 +93,4 @@ if __name__ == '__main__':
 
     exit(0)
 
-    def parse_positional_args():
-        "parse the command line parameters of this program"
-        import argparse
-        parser = argparse.ArgumentParser()
-        parser.add_argument("google_sheet_doc_name", help="name of google sheet. eg: tutorial-participation")
-        parser.add_argument("output_grade_file_name", help="name of jim clarke grade file to write eg: p_tu")
-        args = parser.parse_args()
-        return args
-    args = parse_positional_args()
-    write_grade_file_from_csv_metadata_and_marks(
-        get_sheet_data(args.google_sheet_doc_name),
-        args.output_grade_file_name)
-
-    #args = parse_positional_args()
 
