@@ -82,7 +82,7 @@ def write_grade_file_from_csv_metadata_and_marks(csv_file_data,ofn):
 * weird line above changes the separator char to , (comma). 
 * "Jim Clarke" style grades file 
 * See http://www.cdf.toronto.edu/~clarke/grade/fileformat.shtml
-* CSC300 fall.. Sept to Dec 2017
+* spring Jan  to April 2018
 """    
     for (mark_name,mark_type) in zip(mark_names[1:],mark_types[1:]):
         if mark_type.startswith('"'):
