@@ -1,23 +1,19 @@
 #!/opt/local/bin/python3.5
 
 EMPTY="CSC300H1S-empty"
-R_EMPTY="r-empty"        # yucky hack a grades file listing all the reading submissions
-
-# collect all reading submission marks in this file
-READ="read"
-
 TERM = "term"   # term marks will be gcopy'd into this file
 FINAL = "fin"   # name of final grades file AND also the name of the forumula that calculates it
 
+# downloaded from google sheet in ta-marks (using fetch_a_sheet.py)
 LIST=[
-    "a1",    # downloaded from a1r google sheet   (using fetch_ta_marks.py)
-    "a2",    # downloaded from a2r google sheet   (using fetch_ta_marks.py)
+    "r",
+    "p_tu",
+    "a1r",
+    "a2r", 
 #    "a3",
 #    "deb",
-    "p_tu",  # downloaded from tutorial-participation sheet  (using fetch_ta_marks.py)
 #    "a4",
     # "exam"
-    "r"
     ]
 
 def mark_file_name_generator3(quiz_dir,suffix,list):
@@ -35,10 +31,6 @@ import itertools
 
 if not os.path.isfile(EMPTY):
     print("cannot stat",EMPTY)
-    exit(5)
-
-if not os.path.isfile(R_EMPTY):
-    print("cannot stat",R_EMPTY)
     exit(5)
 
 # this script must be run from directory containing grades files    
@@ -73,11 +65,7 @@ def check_input_grades_files():
     # check if grades files exist, glint clean
     print('glinting.. ', end='')
     sys.stdout.flush()
-    for (m,fn) in itertools.chain(
-#            mark_file_name_generator3(mark_dir,"-0101",R1),
-#            mark_file_name_generator3(mark_dir,"-5101",R5),
-            mark_file_name_generator3(mark_dir,"",LIST)
-            ):
+    for (m,fn) in mark_file_name_generator3(mark_dir,"",LIST):
         if not os.path.isfile(fn):
             print("no file ", fn)
             exit(3)
@@ -89,44 +77,8 @@ def check_input_grades_files():
             exit(5)
     print("")
     
-def calculate_reading_grade(r1,r5,r_empty,read):
-    "readings accumulated into arg"
-    #R starts off as the empty marks file (with all mark fields defined)
-    from runit import runit
-    backup_if_exists(read)
-    if shutil.copy(r_empty, read): #src, dest
-        runit("ls -l %s" % read)
-    else:
-        print("failed to copy",r_empty,"to",read)
-        exit(5)
 
-    # gcopy copies the reading mark for each week into grade file read
-    for (m,fn) in itertools.chain(
-            mark_file_name_generator3(mark_dir,"-0101",r1),
-            mark_file_name_generator3(mark_dir,"-5101",r5)
-            ):
-        print("about to: gcopy", m,"from",fn,"to", read)
-        if jim_clark_tools.gcopy(m,fn,read):
-            print("gcopy", m, fn, read, "has failed")
-            exit(0)
-    #generats r, the total reading/lec participation mark
-    jim_clark_tools.gen(read) 
-
-def calculate_term_grade():
-    "once all the grades are down, calculate the term grade"
-    from runit import runit
-    if shutil.copy(EMPTY, TERM): #src, dest
-        runit("ls -l %s" % TERM)
-    else:
-        print("failed to copy",EMPTY,"to",TERM)
-        exit(5)
-    # term mark needs r too
-    for (m,fn) in itertools.chain( mark_file_name_generator3(mark_dir,"",LIST + [READ]) ):
-        if jim_clark_tools.gcopy(m,fn,TERM):
-            print("gcopy", m, fn, TERM, "has failed")
-    jim_clark_tools.gen(TERM)
-
-def calculate_term_grade2(mark_dir,empty, mark_list, term):
+def calculate_term_grade(mark_dir,empty, mark_list, term):
     "once all the grades are down, calculate the term grade"
     from runit import runit
     backup_if_exists(term)
@@ -136,9 +88,10 @@ def calculate_term_grade2(mark_dir,empty, mark_list, term):
         print("failed to copy",empty,"to",term)
         exit(5)
     # term mark needs r too
-    for (m,fn) in itertools.chain( mark_file_name_generator3(mark_dir,"",mark_list) ):
+    for (m,fn) in mark_file_name_generator3(mark_dir,"",mark_list):
         if jim_clark_tools.gcopy(m,fn,term):
             print("gcopy", m, fn, term, "has failed")
+            exit(4)
     jim_clark_tools.gen(term)
     
 def calculate_final_grade(term,exam_mark,exam_fn,fin):
@@ -165,44 +118,50 @@ def clean_up_marks_file(fn):
     jim_clark_tools.gremove(fn,"email")
     
 # REAL WORK: combine the assignment (etc) grades files into one term grades file
-FIN="fin"
-EXAM="exam-raw"
-EXAM_MARK="exam"
 
 check_input_grades_files()
-#calculate_reading_grade(R1,R5,R_EMPTY,READ)
 backup_if_exists(TERM)
-calculate_term_grade2(mark_dir, EMPTY, LIST + [READ], TERM)
+calculate_term_grade(mark_dir, EMPTY, LIST, TERM)
 
 #jim_clark_tools.gstats(READ)
 #print("tutorial grade (attendance) statistics")
 #jim_clark_tools.gstats("p_tu")
    
+# before exam why bother (apart from testing this script)
+do_fin = False
 
-backup_if_exists(FIN)
-#calculate_final_grade(TERM,EXAM_MARK,EXAM,FIN)
+if do_fin:
+    FIN="fin"
+    EXAM="exam-raw"
+    EXAM_MARK="exam"
+    fin_clean = FIN + "-clean"
+    backup_if_exists(FIN)
+    calculate_final_grade(TERM,EXAM_MARK,EXAM,FIN)
 
 term_to_post = TERM + "-cdf"
-fin_clean = FIN + "-clean"
 
-if True:
-    if not shutil.copy(TERM, term_to_post): #src, dest
-        exit(0)
-    clean_up_marks_file(term_to_post)
-    jim_clark_tools.gremove(term_to_post,"fin")
-    jim_clark_tools.gremove(term_to_post,"exam")
+if not shutil.copy(TERM, term_to_post): #src, dest
+    exit(0)
+clean_up_marks_file(term_to_post)
+jim_clark_tools.gremove(term_to_post,"fin")
+jim_clark_tools.gremove(term_to_post,"exam")
+
+if do_fin:
     if not shutil.copy(FIN, fin_clean): #src, dest
         exit(0)
     clean_up_marks_file(fin_clean)
 
 print("TERM grade statistics")
 jim_clark_tools.gstats(term_to_post,width=6)
-    
-print("final grade statistics")
-jim_clark_tools.gstats(fin_clean,width=6)
+
+if do_fin:
+    print("final grade statistics")
+    jim_clark_tools.gstats(fin_clean,width=6)
 
 from runit import runit
-runit("ls -ltr %s %s %s %s" % (TERM, term_to_post, FIN, fin_clean))
+runit("ls -ltr %s %s %s %s" % (TERM, term_to_post))
+if do_fin:
+    runit("ls -ltr %s %s %s %s" % (FIN, fin_clean))
 
 exit(0)    
 
