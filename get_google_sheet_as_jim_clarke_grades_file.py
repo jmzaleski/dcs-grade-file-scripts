@@ -9,7 +9,7 @@ def get_sheet_data(sheet_name):
     scope = ['https://spreadsheets.google.com/feeds']
 
     # follow the instructions in the blog above carefully to get this.
-    creds = ServiceAccountCredentials.from_json_keyfile_name('/Users/mzaleski/DCSFetchMarks-3cf40810a20f.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('/home/matz/DCSFetchMarks-3cf40810a20f.json', scope)
 
     client = gspread.authorize(creds)
     # Find the workbook by name and open the first sheet
@@ -34,19 +34,23 @@ def get_sheet_data_from_url(sheet_url):
     scope = ['https://spreadsheets.google.com/feeds']
 
     # follow the instructions in the blog above carefully to get this.
-    creds = ServiceAccountCredentials.from_json_keyfile_name('/Users/mzaleski/DCSFetchMarks-3cf40810a20f.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('/home/matz/DCSFetchMarks-3cf40810a20f.json', scope)
 
     client = gspread.authorize(creds)
     # Find the workbook by URL and open the first sheet
     try:
         work_book = client.open_by_url(sheet_url)
+        assert work_book
         sheet = work_book.sheet1
+        assert sheet
         csv_file_data = sheet.export(format='csv')
+        assert csv_file_data
         return csv_file_data
     except:
         import traceback,sys
         print("failed to open sheet", sheet_url)
         traceback.print_exc(file=sys.stdout)
+        exit(2)
         
 def write_grade_file_from_csv_metadata_and_marks(csv_file_data,ofn):
     """smack around the csv data from the google sheet so it's a jim
@@ -55,6 +59,7 @@ def write_grade_file_from_csv_metadata_and_marks(csv_file_data,ofn):
     See http://www.cdf.toronto.edu/~clarke/grade/fileformat.shtml
     """
     import os.path
+    assert csv_file_data
     if os.path.isfile(ofn):
         modifiedTime = os.path.getmtime(ofn) 
         #from datetime import date

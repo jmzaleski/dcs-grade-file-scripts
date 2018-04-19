@@ -30,11 +30,7 @@ if __name__ == '__main__':
         exit(0)
     #TODO: figure out how to factor this!!
     tab = {
-        "" : "p_tu",
-        "" : "r",
-        "" : "a1",
-        "" : "a2",
-        "" : "a3",
+        "https://docs.google.com/spreadsheets/d/184_Z-fGVKAOCgOuVdEI9-4z6c76EaUX8tkTI-MjG6Xs/edit#gid=0" : "fin",
         "https://docs.google.com/spreadsheets/d/1PLNvWmiIhL1G0VUQE5nkbujDE3bJEbjRSTsY06d-se0/edit#gid=1270130289" : "mid",
         }
 
@@ -80,6 +76,7 @@ if __name__ == '__main__':
                 continue
         print("about to download google sheet", sheet_name, "to file", ofn)
         d = get_sheet_data_from_url(sheet_name)
+        assert d
         write_grade_file_from_csv_metadata_and_marks(d, ofn)
 
     for ofn in tab.values():
