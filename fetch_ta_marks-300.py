@@ -37,6 +37,8 @@ if __name__ == '__main__':
         "https://docs.google.com/spreadsheets/d/1iBEIbK8jrqujSVB1bXtYJGEGR1amsRujr96navUC1c8/edit#gid=790547393" : "a2",
         "https://docs.google.com/spreadsheets/d/1LggVO5-aTkDHOjTWDhTEIfbciVoBrN_ZLVyxvQGBdlU/edit#gid=790547393" : "a2r",
         "https://docs.google.com/spreadsheets/d/1NceIp3zPkVICqzhi73WuZjgt11YgHkLJyWr47YyY8N8/edit#gid=790547393" : "a3",
+        "https://docs.google.com/spreadsheets/d/1-fFdqUjbSw6mV-zKsof7mgz-cv6v-Du1ZWcup_dVAk4/edit#gid=1942238050" : "term",
+        "https://docs.google.com/spreadsheets/d/1IHYEGAw16Zwc_zUE6_k2yzWfYZLhXRy04xrD8Kwrxs4/edit#gid=0" : "fin",
         }
 
     #untab lousy name for reverse mapping

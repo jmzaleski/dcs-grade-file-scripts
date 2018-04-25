@@ -31,7 +31,9 @@ if __name__ == '__main__':
     #TODO: figure out how to factor this!!
     tab = {
         "https://docs.google.com/spreadsheets/d/184_Z-fGVKAOCgOuVdEI9-4z6c76EaUX8tkTI-MjG6Xs/edit#gid=0" : "fin",
+        "https://docs.google.com/spreadsheets/d/1IcH0vUepBZMWQ5bGSxWttAaEVT6Ref3poUNxTLLgaOA/edit#gid=1451710455" : "term",
         "https://docs.google.com/spreadsheets/d/1PLNvWmiIhL1G0VUQE5nkbujDE3bJEbjRSTsY06d-se0/edit#gid=1270130289" : "mid",
+        "https://docs.google.com/spreadsheets/d/1CCNeOXAvkKA7Z3seeoG6-Qh2FWieFJou2n_KM0lGfow/edit#gid=952112419" : "a4",
         }
 
     #untab lousy name for reverse mapping
