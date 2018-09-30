@@ -1,7 +1,7 @@
 #!/opt/local/bin/python3.5
 
 EMPTY="CSC300H1S-empty"
-TERM = "term"   # term marks will be gcopy'd into this file
+TERM = "term-cj"   # term marks will be gcopy'd into this file
 FINAL = "fin"   # name of final grades file AND also the name of the forumula that calculates it
 
 # downloaded from google sheet in ta-marks (using fetch_a_sheet.py)
@@ -10,8 +10,8 @@ LIST=[
     "p_tu",
     "a1r",
     "a2r", 
-#    "a3",
-#    "deb",
+    "a3",
+    "deb",
 #    "a4",
     # "exam"
     ]

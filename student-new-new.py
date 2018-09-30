@@ -30,6 +30,7 @@ else:
 
 empty_reader = grade_file_reader_writer.GradeFileReaderWriter(open(EMPTY_GRADES).read())
 empty_reader.read_file()
+print(empty_reader.mark_names)
 
 matched_lines = empty_reader.matching_lines_ignore_case(query_string)
 

@@ -39,6 +39,7 @@ if __name__ == '__main__':
         "https://docs.google.com/spreadsheets/d/1NceIp3zPkVICqzhi73WuZjgt11YgHkLJyWr47YyY8N8/edit#gid=790547393" : "a3",
         "https://docs.google.com/spreadsheets/d/1-fFdqUjbSw6mV-zKsof7mgz-cv6v-Du1ZWcup_dVAk4/edit#gid=1942238050" : "term",
         "https://docs.google.com/spreadsheets/d/1IHYEGAw16Zwc_zUE6_k2yzWfYZLhXRy04xrD8Kwrxs4/edit#gid=0" : "fin",
+        "https://docs.google.com/spreadsheets/d/1rros1Sk3LGni-GOyX9jH5Ul-IaRj3PHgpjazwpe2jBc/edit?usp=drive_web&ouid=112574211650300710377" : "a4",
         }
 
     #untab lousy name for reverse mapping
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     write_file = {}
     for k in untab.keys():
         if always_download:
-            write_file[ofn] = True
+            write_file[k] = True
         else:
             write_file[k] = False
 
