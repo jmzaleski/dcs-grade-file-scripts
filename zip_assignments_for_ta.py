@@ -4,7 +4,7 @@ from __future__ import print_function  #allows print as function
 # parse this CSV, build hash from utorid to tutorial.
 # then scan the downloaded submissions, which have way more mangled names than markus, and divvy them up into directories.
 
-def zip_assignments_for_ta_q(utorid_to_tutorial_dict, quercus_download_dir, dest_dir):
+def zip_assignments_for_ta_q(utorid_to_tutorial_dict, utorid_to_ID_dict, quercus_download_dir, dest_dir):
     import os
     from os import system
     from os import listdir
@@ -22,25 +22,33 @@ def zip_assignments_for_ta_q(utorid_to_tutorial_dict, quercus_download_dir, dest
     files_per_ta = {}
 
     # for each tutorial section, make a list of assignment file names
-    # kludgy nasty brute force
-    
+    # turns out that identifying submissions by utorid is not reliable.
+    # We try quercus 
+
     for tutorial_section_name in tuts:
         ta_files = []
         #scan all the students finding the ones in tutorial_section_name.. filter?
         for student_utorid in utorid_to_tutorial_dict.keys():
             if not utorid_to_tutorial_dict[student_utorid] == tutorial_section_name:
                 continue
-            dir = "%s" % (quercus_download_dir)
-            if not os.path.isdir(dir):
-                print("no dir for", dir)
-                continue
-            import glob
-            # downloaded submission file names always start with utorid.. i hope.
-            glob_expr = os.path.join(dir,student_utorid) + "*.pdf"
-            file_names = glob.glob(glob_expr)
-            for fn in file_names:
-                ta_files.append(fn)
+
+            dir = "%s" % (quercus_download_dir) if not
+            os.path.isdir(dir): print(student_utorid,"no dir", dir,
+            "in",tutorial_section_name) else: import glob # downloaded
+            submission file names always start with utorid.. i hope
+            #glob_expr = os.path.join(dir,student_utorid) + "*.pdf"
+            glob_expr = dir + '/*' + student_utorid + "_*.pdf" #case
+            still issue?  file_names = glob.glob(glob_expr) if not
+            len(file_names): student_ID =
+            utorid_to_ID_dict[student_utorid] #try again by ID
+            file_names = glob.glob(dir + '/*' + student_ID + "_*.pdf")
+            if len(file_names): print(student_utorid, "gotcha by ID")
+            else: print(student_utorid, student_ID, "glob returns no
+            files", tutorial_section_name,"by utorid or quercus ID")
+            for fn in file_names: ta_files.append(fn)
+                        
         files_per_ta[tutorial_section_name] = ta_files
+    
 
     # pretty print
     if True:
