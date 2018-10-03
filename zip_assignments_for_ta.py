@@ -31,22 +31,27 @@ def zip_assignments_for_ta_q(utorid_to_tutorial_dict, utorid_to_ID_dict, quercus
         for student_utorid in utorid_to_tutorial_dict.keys():
             if not utorid_to_tutorial_dict[student_utorid] == tutorial_section_name:
                 continue
-
-            dir = "%s" % (quercus_download_dir) if not
-            os.path.isdir(dir): print(student_utorid,"no dir", dir,
-            "in",tutorial_section_name) else: import glob # downloaded
-            submission file names always start with utorid.. i hope
-            #glob_expr = os.path.join(dir,student_utorid) + "*.pdf"
-            glob_expr = dir + '/*' + student_utorid + "_*.pdf" #case
-            still issue?  file_names = glob.glob(glob_expr) if not
-            len(file_names): student_ID =
-            utorid_to_ID_dict[student_utorid] #try again by ID
-            file_names = glob.glob(dir + '/*' + student_ID + "_*.pdf")
-            if len(file_names): print(student_utorid, "gotcha by ID")
-            else: print(student_utorid, student_ID, "glob returns no
-            files", tutorial_section_name,"by utorid or quercus ID")
-            for fn in file_names: ta_files.append(fn)
-                        
+            dir = "%s" % (quercus_download_dir)
+            if not os.path.isdir(dir):
+                print(student_utorid,"no dir", dir, "in",tutorial_section_name)
+            else:
+                import glob
+                # downloaded submission file names always start with utorid.. i hope
+                #glob_expr = os.path.join(dir,student_utorid) + "*.pdf"
+                glob_expr = dir + '/*' + student_utorid + "_*.pdf" #case still issue?
+                file_names = glob.glob(glob_expr)
+                if not len(file_names):
+                    student_ID = utorid_to_ID_dict[student_utorid]
+                    #try again by ID
+                    file_names = glob.glob(dir + '/*' + student_ID + "_*.pdf")
+                    if len(file_names):
+                        print(student_utorid, "gotcha by ID")
+                    else:
+                        print(student_utorid, student_ID,
+                          "glob returns no files",
+                           tutorial_section_name,"by utorid or quercus ID")
+                for fn in file_names:
+                    ta_files.append(fn)                        
         files_per_ta[tutorial_section_name] = ta_files
     
 
