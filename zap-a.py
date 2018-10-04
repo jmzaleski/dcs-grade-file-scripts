@@ -68,9 +68,10 @@ if __name__ == '__main__':
         d[utorid] = cols[ix]
         return d
 
-    # more quercus stupidity. section is AAA and CSC300H...
-    # if AAA is lexically before CSC300
-    # otherwise other way around!
+    # more quercus inconsistency. suppose tut section is AAA and lecture section is CSC300H...
+    # if AAA is lexically before CSC300 quercus lists student section as
+    # AAA and CSC300H
+    # otherwise other way around, ie:
     # CSC300H1F and AAA
     
     def gather_section(d,assoc,ix):
@@ -87,12 +88,14 @@ if __name__ == '__main__':
         d[utorid] = tutorial
         return d
 
-    import functools
     hdr = csv_reader_by_utorid.col_headers
     ix_section= hdr.index("Section") + 1  # stupid comma col hence +1
     ix_ID     = hdr.index("ID") + 1
     
     from zip_assignments_for_ta import zip_assignments_for_ta_q
+    import functools
+
+    #could copy less by map'ing sections after gathering them
     zip_assignments_for_ta_q(
         functools.reduce( lambda d,assoc: gather_section(d,assoc,ix_section), utorid_to_grade_file_line_dict.items(), {} ),
         functools.reduce( lambda d,assoc: gather(d,assoc,ix_ID), utorid_to_grade_file_line_dict.items(),{}),
@@ -100,16 +103,4 @@ if __name__ == '__main__':
         dest_dir = dest)
 
     exit(0)
-
-    # for key in utorid_to_grade_file_line_dict:
-    #     section_quercus = utorid_to_grade_file_line_dict[key][ix_section]
-    #     tutorial = None
-    #     FRIGGING_QUERCUS_AND = " and "
-    #     if section_quercus.find(FRIGGING_QUERCUS_AND) > 0:
-    #         if section_quercus.index("CSC300") == 0:
-    #             tutorial = section_quercus.split(FRIGGING_QUERCUS_AND)[1]
-    #         else:
-    #             tutorial = section_quercus.split(FRIGGING_QUERCUS_AND)[0]
-    #     #utorid_to_tutorial_section[key] = tutorial
-    #     utorid_to_quercus_ID_number[key] = utorid_to_grade_file_line_dict[key][ix_ID]
         
