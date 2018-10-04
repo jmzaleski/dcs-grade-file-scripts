@@ -58,9 +58,7 @@ if __name__ == '__main__':
         "2018-09-30T1137_Grades-CSC300H1_F_LEC0101.csv")
     
     csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,"SIS Login ID") 
-    grades_by_utorid = csv_reader_by_utorid.read_dict();
-    utorid_to_grade_file_line_dict = csv_reader_by_utorid.dict
-
+    utorid_to_grade_file_line_dict = csv_reader_by_utorid.read_dict()
 
     def gather(d,assoc,ix):
         "for each student record the indicated column of csv file row"
@@ -88,9 +86,8 @@ if __name__ == '__main__':
         d[utorid] = tutorial
         return d
 
-    hdr = csv_reader_by_utorid.col_headers
-    ix_section= hdr.index("Section") + 1  # stupid comma col hence +1
-    ix_ID     = hdr.index("ID") + 1
+    ix_section= csv_reader_by_utorid.col_headers.index("Section")
+    ix_ID     = csv_reader_by_utorid.col_headers.index("ID")
     
     from zip_assignments_for_ta import zip_assignments_for_ta_q
     import functools
@@ -103,4 +100,3 @@ if __name__ == '__main__':
         dest_dir = dest)
 
     exit(0)
-        
