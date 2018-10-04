@@ -29,67 +29,21 @@ class CsvFileToDictionaryReader:
         key_col_number = None
         
         with open(self.fn) as csv_file:
-            csv_file_reader = csv.reader(csv_file, delimiter=',', quotechar='|',dialect=csv.excel_tab)
-            # squirrel away header line
-            list_first_line = next(csv_file_reader)
+            csv_file_reader = csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)
+
+            # squirrel away lines containing column headers and mysterious second line
+            self.col_headers = next(csv_file_reader)
+            self.line2 = next(csv_file_reader)
+            key_col_number = self.col_headers.index(self.col_name) #throws if not found
+
+            def acc(d, item):
+                d[item[key_col_number]] = item
+                return d
+                
+            import functools
+            self.dict = functools.reduce(acc, csv_file_reader, {})
+            return self.dict            
             
-            self.col_headers = list_first_line
-            # look for column containing col_name.. that will be the key
-            ix=0
-            for col_hdr in list_first_line:
-                #print(col_hdr)
-                if col_hdr == self.col_name: #one we are looking for
-                    key_col_number = ix
-                    break
-                ix += 1
-                        
-            if not key_col_number:
-                print("error: could not find column header", self.col_name, "in first line of file", self.fn);
-                exit(2)
-                
-            #print(key_col_number)
-            
-            junk_second_line = next(csv_file_reader)
-
-            # here's a stupid thing. quercus has:
-            # in header row, Student, ID, SS User ID, SIS Login ID, Section
-            # in data row, Student col firstname COMMA last name.. so counts are off
-            # 
-            key_col_number += 1 #to account for comma in STudent column. doh.
-
-            for l in csv_file_reader:
-                self.dict[l[key_col_number]] = l
-                
-    # def read_groups(self):
-    #     groups = {}
-
-    #     #with open(self.fn, 'rb') as group_file:
-    #     with open(self.fn) as group_file:
-    #         group_file_reader = csv.reader(group_file, delimiter=',', quotechar='|',dialect=csv.excel_tab)
-
-    #         first_line = self.get_skip_first_line()
-    #         for list_cdfid_in_group in group_file_reader:
-    #             if first_line:
-    #                 first_line = False
-    #                 continue
-    #             team_name=list_cdfid_in_group[0]
-                 
-    #             # group_cdf_id_list may contain random case CDF ids, empty strings, unmapped students
-    #             group_cdf_id_list = list_cdfid_in_group[1:] 
-        
-    #             #carefully collect the cdfid's for the students in the group, scrubbing it
-    #             scrubbed = []
-    #             for cdfid in group_cdf_id_list:
-    #                 if len(cdfid) == 0:
-    #                     continue
-    #                 scrubbed.append(cdfid)
-    #                 self.msg.verbose(cdfid)
-    #             self.msg.debug(team_name, scrubbed)
-                
-    #             groups[team_name] = scrubbed
-    #     return groups
-    # skip_first_line = property(get_skip_first_line, set_skip_first_line, del_skip_first_line, "skip_first_line's docstring")
-    
 if __name__ == "__main__" :
     msg = matz_utils.MessagePrinter(True)
     msg.debug("hello from group_scs_file_reader.py")
