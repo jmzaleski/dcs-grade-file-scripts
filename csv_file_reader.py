@@ -24,6 +24,10 @@ class CsvFileToDictionaryReader:
         self.col_headers = None
         self.dict = {}
 
+    # this OO idiom isn't helping.
+    # challenge is how to return the col headers and the dict at the same time from a functional interface.
+    # (I guess we could return a tuple. I'm not sure if these are a good idea or not yet)
+    
     def read_dict(self):
         "read csv file, returning dict keyed by col_name"
         key_col_number = None
