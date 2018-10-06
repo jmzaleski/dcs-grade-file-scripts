@@ -42,9 +42,12 @@ if __name__ == '__main__':
     with open(CDF_CLASS_FILE) as csv_file:
         collections.deque(map(lambda a_line: cdf_line.update({a_line[0]: a_line}),csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)))
 
+    # search for the QUERY_STRING in the files and record utorid's of hits
     matched_utorids = []
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(QUERY_STRING,''.join(d[u]),re.IGNORECASE), d.keys())
+    matched_utorids = list(set(matched_utorids)) # squeeze out dups
+    matched_utorids.sort()
 
     # make the menu items to choose between matched from the utorids
     choose_student_menu = []
