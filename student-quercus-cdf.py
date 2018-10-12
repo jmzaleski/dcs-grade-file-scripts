@@ -46,6 +46,10 @@ if __name__ == '__main__':
     matched_utorids = []
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(QUERY_STRING,''.join(d[u]),re.IGNORECASE), d.keys())
+    if len(matched_utorids) == 0:
+        print("no students matching", QUERY_STRING)
+        exit(1)
+        
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
 
@@ -58,13 +62,14 @@ if __name__ == '__main__':
             flat_cols = ", ".join(cols)
             choose_student_menu.append(flat_cols)
             rev_utorid_map[flat_cols] = utorid
-    
+
     # display menu of matched lines so user can select which match they meant.
     from menu import MatzMenu
     menu = MatzMenu(choose_student_menu,"select student: ")
     resp = menu.menu()
     if resp < 0 or resp > len(choose_student_menu)-1:
         print(resp, "is invalid response")
+        exit(2)
 
     line = choose_student_menu[resp].rstrip()
     utorid = rev_utorid_map[line]
