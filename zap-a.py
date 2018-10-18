@@ -1,9 +1,9 @@
 #!/usr/local/bin/python3
 
-# for the dir tree created after collecting markus assignments, copy the PDF's into
-# a new directory for each TA according to the gradefile indicated.
+# for the flat file of files created after downloading and unzipping quercus assignments,
+# copy the PDF's into a new directory for each TA according to the section indicated.
 
-# quercus has changed stuff a lot. Now pretty well all data comes from grades file.
+# quercus has changed stuff a lot. Now pretty well all data comes from "grades" file.
 # eg: 2018-09-30T1137_Grades-CSC300H1_F_LEC0101.csv
 
 # Student,ID,SIS User ID,SIS Login ID,Section,A1 (64868),A2 (64870),A3 (64872),A4 (64875),Debate-prep (64880),tutorial-participation (64882),class-participation (64883),tutorial-sept-26 (75740),tutorial-sept-19 (76762),A1-group Current Score,A1-group Unposted Current Score,A1-group Final Score,A1-group Unposted Final Score,A2 Current Score,A2 Unposted Current Score,A2 Final Score,A2 Unposted Final Score,A3 Current Score,A3 Unposted Current Score,A3 Final Score,A3 Unposted Final Score,A4 Current Score,A4 Unposted Current Score,A4 Final Score,A4 Unposted Final Score,Debate Current Score,Debate Unposted Current Score,Debate Final Score,Debate Unposted Final Score,participation Current Score,participation Unposted Current Score,participation Final Score,participation Unposted Final Score,exam Current Score,exam Unposted Current Score,exam Final Score,exam Unposted Final Score,Current Score,Unposted Current Score,Final Score,Unposted Final Score
@@ -27,24 +27,15 @@ if __name__ == '__main__':
     import sys
     import os
     #duplicate. sorta. so works on mac and windows laptops
-    sys.path.append('/home/matz/goit/dcs-grade-file-scripts/')
-    sys.path.append('/Users/mzaleski/git/dcs-grade-file-scripts')
-
-    # TODO: how to find home dir in python??
-    # import pathlib
-    # home = str(pathlib.Path.home())
-    # CLASS_DIR = os.path.realpath(home + "/links/300")
-    # CLASS_DIR = "/home/matz/links/300"
-    # CLASS_DIR = os.path.realpath("/Users/mzaleski/links/300")
+    for dir in ['/home/matz/goit/dcs-grade-file-scripts/','/Users/mzaleski/git/dcs-grade-file-scripts']:
+        sys.path.append(dir)
 
     assn = parse_positional_args() #eg: a1
-    
-    CLASS_DIR = "/Users/mzaleski/links/300"
-    GRADES_FILE = "p_tu"  #tutorial-participation downloaded from ta-marks
-    dest = os.path.join(CLASS_DIR, "zipped-submit", assn)
 
-    #CLASS_DIR = "/Users/mzaleski/Downloads/a1"
-    #dest = "/tmp/zipped-submit/" + assn
+    # this is usually a symlink to a dir in Google Drive File Stream file system..
+    # (i've only ever done this for csc300, so leave it hardcoded)
+    CLASS_DIR = "/Users/mzaleski/links/300"
+    dest = os.path.join(CLASS_DIR, "zipped-submit", assn)
 
     if os.path.exists(dest):
         print(dest, "already exists, this script too chicken to overwrite")
@@ -52,10 +43,20 @@ if __name__ == '__main__':
     
     from csv_file_reader import CsvFileToDictionaryReader
 
+    src = os.path.join(CLASS_DIR,"submit",assn)
+    if not os.path.exists(src):
+        print(src, "dir does not exist, something very wrong")
+        exit(2)
+
+    # up-to-date downloaded quercus grades file in marks folder copied to 
     QUERCUS_GRADES_FILE = os.path.join(
         CLASS_DIR,
         "marks",
-        "2018-09-30T1137_Grades-CSC300H1_F_LEC0101.csv")
+        "CSC300H1F-quercus.csv")
+
+    if not os.path.exists(QUERCUS_GRADES_FILE):
+        print(QUERCUS_GRADES_FILE,"file does not exist, something very wrong")
+        exit(2)
     
     csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,"SIS Login ID") 
     utorid_to_grade_file_line_dict = csv_reader_by_utorid.read_dict()
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     zip_assignments_for_ta_q(
         functools.reduce( lambda d,assoc: gather_section(d,assoc,ix_section), utorid_to_grade_file_line_dict.items(), {} ),
         functools.reduce( lambda d,assoc: gather(d,assoc,ix_ID), utorid_to_grade_file_line_dict.items(),{}),
-        quercus_download_dir=os.path.join(CLASS_DIR,"submit",assn),
+        quercus_download_dir=src,
         dest_dir = dest)
 
     exit(0)
