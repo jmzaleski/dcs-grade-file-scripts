@@ -12,7 +12,7 @@ test ! -z "$SESSION" || die SESSION env not found.. should be defined in ./dot.s
 
 CDF="CSC"$COURSE$SESSION
 
-CLASS=$CDF-classlist
+CLASS=$CDF-cdf.csv
 
 test -f $CLASS || die cannot open $CLASS
 
@@ -35,7 +35,7 @@ do
 		die $i matched more than one line.
 	else
 		grep -i $i $CLASS | cut -d, -f6 >> $TMP
-		grep -i $i $LIST
+		#grep -i $i $LIST
 	fi
 done
 
