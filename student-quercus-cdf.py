@@ -1,5 +1,6 @@
 
 from __future__ import print_function  #allows print as function
+
 def parse_positional_args():
     "parse the command line parameters of this program"
     import argparse, collections
@@ -54,6 +55,7 @@ if __name__ == '__main__':
     matched_utorids.sort()
 
     # make the menu items to choose between matched from the utorids
+    # using the lines matched in the quercus file put 
     choose_student_menu = []
     rev_utorid_map = {}
     for utorid in matched_utorids:
