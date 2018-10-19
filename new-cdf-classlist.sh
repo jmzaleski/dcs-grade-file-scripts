@@ -12,9 +12,7 @@ test ! -z "$SESSION" || die SESSION env not found.. should be defined in ./dot.s
 test -d $GBIN || die no grades bin in $GBIN
 
 CDF="CSC"$COURSE$SESSION
-#CLASSLIST=$CDF-classlist
 CLASSLIST=$CDF-cdf.csv
-EMPTY=$CDF-empty
 
 test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
 
