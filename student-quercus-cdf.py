@@ -33,8 +33,8 @@ if __name__ == '__main__':
 
     QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
     
-    # read the grades files exported from quercus 
-    # these are dictionaries of lists of strings. key is utorid. list has element from each column.
+    # read the grades files exported from quercus and make a dict key'd by utorid. 
+    # value is list with element from each column
     quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,QUERCUS_UTORID_COL_NAME) 
     q_line = quercus_csv_reader_by_utorid.read_dict()
 
@@ -43,6 +43,16 @@ if __name__ == '__main__':
     with open(CDF_CLASS_FILE) as csv_file:
         collections.deque(map(lambda a_line: cdf_line.update({a_line[0]: a_line}),csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)))
 
+    # compare utorid's to help catch case when files are out-of-date
+    if not set(q_line.keys()) == set(cdf_line.keys()):
+        print("CDF classlist and quercus grade file do not contain identical sets of utorids")
+        print("records in quercus but not CDF (drops?)")
+        for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
+            print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+        print("records in CDF but not quercus (adds?)")
+        for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
+            print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+    
     # search for the QUERY_STRING in the files and record utorid's of hits
     matched_utorids = []
     for d in [q_line,cdf_line]:
@@ -81,7 +91,7 @@ if __name__ == '__main__':
     if utorid in cdf_line:
         menu_items.append( cdf_line[utorid][IX_EMAIL_CDF])
     else:
-        menu_items.append( "no utorid/email in CDF")
+        menu_items.append( "no email because " + utorid + " missing in CDF")
 
     # display menu of fields in matched student
     # have to use this for a while to learn what want to see.
