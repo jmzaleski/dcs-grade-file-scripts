@@ -43,24 +43,45 @@ if __name__ == '__main__':
     with open(CDF_CLASS_FILE) as csv_file:
         collections.deque(map(lambda a_line: cdf_line.update({a_line[0]: a_line}),csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)))
 
+    
     # compare utorid's to help catch case when files are out-of-date
+    # TODO functionalify this!
+    dropped_utorid = set()
     if not set(q_line.keys()) == set(cdf_line.keys()):
-        print("CDF classlist and quercus grade file do not contain identical sets of utorids")
-        print("records in quercus but not CDF (drops?)")
+        # by default just print the ones that don't have a section field containing CSC
+        # (for drops, quercus removes the lecture section but not the tutorial section)
         for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
-            print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
-        print("records in CDF but not quercus (adds?)")
-        for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
-            print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+            if len(q_line[utorid][4]) >0 and q_line[utorid][4].find("CSC") < 0:
+                dropped_utorid.add(utorid)
+                #print(utorid,"probably dropped because doesn't appear to be in lecture section")
+        if False:
+            print("CDF classlist and quercus grade file do not contain identical sets of utorids")
+            print("records in quercus but not CDF (drops?)")
+            for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
+                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+            print("records in CDF but not quercus (adds?)")
+            for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
+                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+            
+    print("likely dropped because not in quercus lecture section", dropped_utorid)
     
     # search for the QUERY_STRING in the files and record utorid's of hits
     matched_utorids = []
+
+    #check if 
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(QUERY_STRING,''.join(d[u]),re.IGNORECASE), d.keys())
+
     if len(matched_utorids) == 0:
         print("no students matching", QUERY_STRING)
         exit(1)
-        
+
+    # which of the matched utorid's above are in the likely drops? warn.
+    for utorid in dropped_utorid & set(matched_utorids):
+        print("\n")
+        print(utorid, "warning: matched student likely has dropped because not in quercus lecture section")
+    print("\n")
+    
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
 
