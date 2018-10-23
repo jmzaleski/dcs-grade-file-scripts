@@ -5,19 +5,11 @@ def parse_positional_args():
     "parse the command line parameters of this program"
     import argparse, collections
     parser = argparse.ArgumentParser()
-    collections.deque(
-        map( lambda tuple: parser.add_argument(tuple[0], help=tuple[1]),
-            [("cdf_csv_file",     "class list from CDF"),
+    for tuple in [
+            ("cdf_csv_file",     "class list from CDF"),
             ("quercus_csv_file", "class list from quercus eg: CSC300H1F-quercus.csv"),
-            ("query_string",     "string to look for")
-            ]))
-    # surely less weird to say:
-    # parser = argparse.ArgumentParser()
-    # for tuple in [
-    #         ("cdf_csv_file",     "class list from CDF"),
-    #         ("quercus_csv_file", "class list from quercus eg: CSC300H1F-quercus.csv"),
-    #         ("query_string",     "string to look for") ]:
-    #     parser.add_argument(tuple[0], help=tuple[1]),
+            ("query_string",     "string to look for") ]:
+        parser.add_argument(tuple[0], help=tuple[1]),
     args = parser.parse_args()
     return (args.cdf_csv_file,args.quercus_csv_file, args.query_string)
 
@@ -25,13 +17,15 @@ if __name__ == '__main__':
     import sys, os, re, csv, functools, collections
     from csv_file_reader import CsvFileToDictionaryReader
 
+    QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
+
     # so finds my modules both on mac and windows laptops
-    for dir in ['/home/matz/goit/dcs-grade-file-scripts/','/Users/mzaleski/git/dcs-grade-file-scripts']:
+    for dir in [
+            '/home/matz/goit/dcs-grade-file-scripts/',
+            '/Users/mzaleski/git/dcs-grade-file-scripts' ]:
         sys.path.append(dir)
 
     (CDF_CLASS_FILE,QUERCUS_GRADES_FILE,QUERY_STRING) = parse_positional_args()
-
-    QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
     
     # read the grades files exported from quercus and make a dict key'd by utorid. 
     # value is list with element from each column
@@ -41,8 +35,11 @@ if __name__ == '__main__':
     # read the CDF file and make a dict key'd by utorid of each line
     cdf_line = {}
     with open(CDF_CLASS_FILE) as csv_file:
-        collections.deque(map(lambda a_line: cdf_line.update({a_line[0]: a_line}),csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)))
+        for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
+            cdf_line[a_line[0]] = a_line
 
+        # weirder to stubornly insist on using map
+        #collections.deque(map(lambda a_line: cdf_line.update({a_line[0]: a_line}),csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)))            
     
     # compare utorid's to help catch case when files are out-of-date
     # TODO functionalify this!
@@ -68,7 +65,6 @@ if __name__ == '__main__':
     # search for the QUERY_STRING in the files and record utorid's of hits
     matched_utorids = []
 
-    #check if 
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(QUERY_STRING,''.join(d[u]),re.IGNORECASE), d.keys())
 
