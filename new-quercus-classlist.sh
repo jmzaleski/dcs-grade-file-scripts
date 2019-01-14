@@ -15,16 +15,23 @@ test -d $GBIN || die no grades bin in $GBIN
 CDF="CSC"$COURSE$SESSION
 CLASSLIST=$CDF-quercus.csv
 
-test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
+#test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
 
 TMP=/tmp/CL$$
 Q_TMP_SORT=/tmp/q-CL$$
 TMP_SORT=/tmp/CL-sorted$$
 
-ls -ltr ~/Downloads/*Grades-CSC$COURSE*.csv
-NEWEST=$(ls -tr ~/Downloads/*Grades-CSC$COURSE*.csv | tail -1)
+set -x
+ls -ltr ~/Downloads/*Grades-CSC$COURSE*.csv | tail -5
+set -
 
-read -p "export grades file from quercus to ~/Downloads $NEWEST" JUNK
+echo
+
+NEWEST=$(ls -tr ~/Downloads/*Grades-CSC$COURSE*.csv | tail -1)
+ls -l $NEWEST
+echo guessing that newest quercus export file is $NEWEST
+
+read -p "hit return to use grades file exported from quercus: $NEWEST >" JUNK
 
 #sort by utorid
 # nevermind section
@@ -36,6 +43,16 @@ cp $NEWEST $TMP || die failed to copy $NEWEST $TMP
 $SORT $CLASSLIST | $CUT  > $Q_TMP_SORT || die sort $CLASSLIST failed
 $SORT $TMP       | $CUT  > $TMP_SORT || die sort $TMP failed
 set -
+
+if test ! -f $CLASSLIST
+then
+	echo $0: cannot find class list $CLASSLIST creating one..	
+	read -p "hit enter to run: /bin/cp -i $TMP_SORT $CLASSLIST >" JUNK
+	/bin/cp -i $TMP_SORT $CLASSLIST
+	echo fresh class list created from CDF
+	ls -l $CLASSLIST
+	exit
+fi	
 
 echo -n num drops
 comm -13 $TMP_SORT  $Q_TMP_SORT | wc -l

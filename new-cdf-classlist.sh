@@ -13,9 +13,6 @@ test -d $GBIN || die no grades bin in $GBIN
 
 CDF="CSC"$COURSE$SESSION
 CLASSLIST=$CDF-cdf.csv
-
-test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
-
 TMP=/tmp/CL$$
 TMP_SORT=/tmp/CL-sorted$$
 
@@ -32,23 +29,35 @@ set -
 # nevermind section
 sort --field-separator=,  --key=1,1 $TMP   > $TMP_SORT || die sort $TMP failed
 
+if test ! -f $CLASSLIST
+then 
+	echo $0: cannot find class list $CLASSLIST creating one..
+	ls -l $TMP_SORT
+	echo following prompt is from cp -i interrupt to not copy
+	read -p "hit enter to run: /bin/cp -i $TMP_SORT $CLASSLIST >" JUNK
+	/bin/cp -i $TMP_SORT $CLASSLIST
+	echo fresh class list created from CDF
+	ls -l $CLASSLIST
+	exit
+fi
+
 echo -n num drops
 comm -13 $TMP_SORT  $CLASSLIST | wc -l
 echo -n num adds
 comm -23 $TMP_SORT  $CLASSLIST | wc -l
 
-echo drops
+echo drops:
 comm -13 $TMP_SORT  $CLASSLIST
-echo adds
+echo adds:
 comm -23 $TMP_SORT  $CLASSLIST
 
-read -p 'diff previous and newly downloaded class list' junk
+read -p 'diff previous and newly downloaded class list:' junk
 
 set -x
 diff $TMP_SORT $CLASSLIST 
 set -
 
-echo too complicated\? try:
+echo diff too complicated\? try:
 echo xdiff $TMP_SORT  $CLASSLIST
 
 read -p "continue" JUNK
