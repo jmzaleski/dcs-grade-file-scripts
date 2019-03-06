@@ -16,7 +16,6 @@ CLASS=$CDF-cdf.csv
 
 test -f $CLASS || die cannot open $CLASS
 
-LIST="$CDF-empty"
 TAFILE=TA
 TMP=/tmp/em$$
 cat > $TMP < /dev/null
@@ -35,7 +34,6 @@ do
 		die $i matched more than one line.
 	else
 		grep -i $i $CLASS | cut -d, -f6 >> $TMP
-		#grep -i $i $LIST
 	fi
 done
 
