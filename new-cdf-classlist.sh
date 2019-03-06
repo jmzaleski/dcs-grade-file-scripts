@@ -20,13 +20,7 @@ set -x
 scp matz@cdf.utoronto.ca:/u/csc/instructors/classlists/$CDF $TMP || die scp failed
 set -
 
-#sort by utorid
-#sort --field-separator=, --key=3,3 --key=1,1 $TMP |  sed -e "s/,9/,09/" | sed -e "s/LEC //"  > $TMP_SORT || die sort $TMP failed
-
-# sort by section then utorid
-#sort --field-separator=, --key=3,3 --key=1,1 $TMP   > $TMP_SORT || die sort $TMP failed
-
-# nevermind section
+# sort by 
 sort --field-separator=,  --key=1,1 $TMP   > $TMP_SORT || die sort $TMP failed
 
 if test ! -f $CLASSLIST
@@ -42,6 +36,7 @@ then
 fi
 
 echo -n num drops
+# comm new old
 comm -13 $TMP_SORT  $CLASSLIST | wc -l
 echo -n num adds
 comm -23 $TMP_SORT  $CLASSLIST | wc -l
