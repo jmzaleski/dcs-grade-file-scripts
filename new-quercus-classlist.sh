@@ -40,8 +40,9 @@ CUT="cut -d, -f1-5"
 
 set -x
 cp $NEWEST $TMP || die failed to copy $NEWEST $TMP
-$SORT $CLASSLIST | $CUT  > $Q_TMP_SORT || die sort $CLASSLIST failed
-$SORT $TMP       | $CUT  > $TMP_SORT || die sort $TMP failed
+
+(head -n 1 $CLASSLIST && tail -n +4 $CLASSLIST | $SORT ) | $CUT  > $Q_TMP_SORT || die sort $CLASSLIST failed
+(head -n 1 $TMP       && tail -n +3 $TMP       | $SORT ) | $CUT  > $TMP_SORT || die sort $TMP failed
 set -
 
 if test ! -f $CLASSLIST
@@ -55,9 +56,10 @@ then
 fi	
 
 echo -n num drops
-comm -13 $TMP_SORT  $Q_TMP_SORT | wc -l
+# comm old new
+comm -13 $TMP_SORT $Q_TMP_SORT  | wc -l
 echo -n num adds
-comm -23 $TMP_SORT  $Q_TMP_SORT | wc -l
+comm -23 $TMP_SORT $Q_TMP_SORT | wc -l
 
 echo to investigate following do:
 echo xdiff $TMP_SORT $Q_TMP_SORT
@@ -66,10 +68,10 @@ read -p 'comm downloaded class list' junk
 
 echo drops:
 echo  '---------------------'
-comm -13 $TMP_SORT  $Q_TMP_SORT
+comm -13 $TMP_SORT $Q_TMP_SORT
 echo '---------------------'
 echo adds:
-comm -23 $TMP_SORT  $Q_TMP_SORT
+comm -23 $TMP_SORT $Q_TMP_SORT
 echo '---------------------'
 
 echo to investigate following do:
@@ -82,17 +84,17 @@ diff $TMP_SORT $Q_TMP_SORT
 set -
 
 echo too complicated\? try:
-echo xdiff $TMP_SORT  $Q_TMP_SORT
+echo xdiff $TMP_SORT $Q_TMP_SORT
 
 read -p "continue to utorid's" JUNK
 echo
 echo utorids of drops:
 echo
-comm -13 $TMP_SORT  $Q_TMP_SORT | cut -d, -f5
+comm -13 $TMP_SORT $Q_TMP_SORT | cut -d, -f5
 
 echo
 read -p "comm -23.. (utorid of new students) ..  >" junk
-comm -23 $TMP_SORT  $Q_TMP_SORT | cut -d, -f5
+comm -23 $TMP_SORT $Q_TMP_SORT | cut -d, -f5
 
 read -p "last chance before scribbling on $CLASSLIST:" junk
 
