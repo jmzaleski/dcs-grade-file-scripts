@@ -26,43 +26,110 @@ if __name__ == '__main__':
         sys.path.append(dir)
 
     (CDF_CLASS_FILE,QUERCUS_GRADES_FILE,QUERY_STRING) = parse_positional_args()
-    
+    quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,QUERCUS_UTORID_COL_NAME)
+     
     # read the grades files exported from quercus and make a dict key'd by utorid. 
     # value is list with element from each column
-    quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,QUERCUS_UTORID_COL_NAME)
-    q_line = quercus_csv_reader_by_utorid.read_dict()
-    # read the CDF file and make a dict key'd by utorid of each line
-    cdf_line = {}
-    with open(CDF_CLASS_FILE) as csv_file:
-        for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
-            cdf_line[a_line[0]] = a_line
+    def read_course_files():
+        #quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(QUERCUS_GRADES_FILE,QUERCUS_UTORID_COL_NAME)
+        q_line = quercus_csv_reader_by_utorid.read_dict()
+        # read the CDF file and make a dict key'd by utorid of each line
+        cdf_line = {}
+        with open(CDF_CLASS_FILE) as csv_file:
+            for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
+                cdf_line[a_line[0]] = a_line
+        #dropped_utorid = drops()
+        return (q_line,cdf_line)
 
-    # compare utorid's to help catch case when files are out-of-date
-    # TODO functionalify this!
-    dropped_utorid = set()
-    if not set(q_line.keys()) == set(cdf_line.keys()):
-        # find records that don't have a section field containing "CSC"
-        # (for drops, quercus removes the lecture section but not the tutorial section)
-        for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
-            # TODO: make new method in csv_reader to fetch named column ? ask gary.
-            if len(q_line[utorid])<5:
-                print("ohoh quercus line has less than four fields..how did you do that??")
-                print(q_line[utorid])
-                exit(2)
-            if len(q_line[utorid][4]) >0 and q_line[utorid][4].find("CSC") < 0:
-                dropped_utorid.add(utorid)
-                # print(utorid,"probably dropped because doesn't appear to be in lecture section")
-        if False:
-            # debug output for diagnosing differences
-            print("CDF classlist and quercus grade file do not contain identical sets of utorids")
-            print("records in quercus but not CDF (drops?)")
+    def drops():
+        dropped_utorid = set()
+        if not set(q_line.keys()) == set(cdf_line.keys()):
+            # find records that don't have a section field containing "CSC"
+            # (for drops, quercus removes the lecture section but not the tutorial section)
             for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
-                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
-            print("records in CDF but not quercus (adds?)")
-            for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
-                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
-            
-    print("likely dropped because not in quercus lecture section", dropped_utorid)
+                # TODO: make new method in csv_reader to fetch named column ? ask gary.
+                if len(q_line[utorid])<5:
+                    print("ohoh quercus line has less than four fields..how did you do that??")
+                    print(q_line[utorid])
+                    exit(2)
+                if len(q_line[utorid][4]) >0 and q_line[utorid][4].find("CSC") < 0:
+                    dropped_utorid.add(utorid)
+                    # print(utorid,"probably dropped because doesn't appear to be in lecture section")
+            # compare utorid's to help catch case when files are out-of-date
+            # TODO functionalify this!
+            if False: #verbosity
+                # debug output for diagnosing differences
+                print("CDF classlist and quercus grade file do not contain identical sets of utorids")
+                print("records in quercus but not CDF (drops?)")
+                for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
+                    print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+                print("records in CDF but not quercus (adds?)")
+                for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
+                    print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+
+        print("likely dropped because not in quercus lecture section", dropped_utorid)
+        return dropped_utorid
+
+
+    # make a menu item for each student record from quercus matched by the query
+    # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
+    def select_student_menu():
+        choose_student_menu = []
+        rev_utorid_map = {}
+        for utorid in matched_utorids:
+            if utorid in q_line:
+                cols = filter(lambda a_col: a_col and a_col != "0.0", q_line[utorid])
+                flat_cols = ", ".join(cols)
+                choose_student_menu.append(flat_cols)
+                rev_utorid_map[flat_cols] = utorid
+
+        from menu import MatzMenu
+        menu = MatzMenu(choose_student_menu,"select student: ")
+        resp = menu.menu()
+        if resp < 0 or resp > len(choose_student_menu)-1:
+            print(resp, "is invalid response")
+            exit(2)
+
+        line = choose_student_menu[resp].rstrip()
+        utorid = rev_utorid_map[line]
+        return utorid
+
+    def select_student_field(utorid):
+        IX_EMAIL_CDF = 5 #email always 5th field of CDF file
+        menu_items = []
+        menu_data = []
+        if utorid in cdf_line:
+            menu_items.append( cdf_line[utorid][IX_EMAIL_CDF])
+            menu_data.append(cdf_line[utorid][IX_EMAIL_CDF])
+        else:
+            menu_items.append( "no email because " + utorid + " missing in CDF")
+            menu_data.append( "no email because " + utorid + " missing in CDF")
+
+        # display menu of fields in matched student
+        # have to use this for a while to learn what want to see.
+        # quercus has a lot of BS fields, screenfuls.
+
+        cut_row = 5 #zillions of mark data fields follow
+        for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_line[utorid]):
+            #if data and data != "0.0":
+            menu_items.append(hdr + ": " +  data)
+            menu_data.append(data)
+            cut_row -= 1
+            if cut_row ==0:
+                break
+
+        from menu import MatzMenu
+        m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
+        resp = m2.menu()
+        if resp < 0 or  resp >= len(menu_items):
+            return null
+        else:
+            return menu_data[resp]
+
+    ######### REAL WORK
+        
+    (q_line,cdf_line) = read_course_files()
+    dropped_utorid = drops()
     
     # search for the QUERY_STRING in the files and record utorid's of hits in matched_utorid
     # TODO: try out doing this by starting with list of all utorids and filtering away?
@@ -83,58 +150,13 @@ if __name__ == '__main__':
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
 
-    # make a menu item for each student record from quercus matched by the query
-    # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
-    choose_student_menu = []
-    rev_utorid_map = {}
-    for utorid in matched_utorids:
-        if utorid in q_line:
-            cols = filter(lambda a_col: a_col and a_col != "0.0", q_line[utorid])
-            flat_cols = ", ".join(cols)
-            choose_student_menu.append(flat_cols)
-            rev_utorid_map[flat_cols] = utorid
+    utorid = select_student_menu()
+    selected_field = select_student_field(utorid)
 
-    from menu import MatzMenu
-    menu = MatzMenu(choose_student_menu,"select student: ")
-    resp = menu.menu()
-    if resp < 0 or resp > len(choose_student_menu)-1:
-        print(resp, "is invalid response")
-        exit(2)
-
-    line = choose_student_menu[resp].rstrip()
-    utorid = rev_utorid_map[line]
-
-    IX_EMAIL_CDF = 5 #email always 5th field of CDF file
-    menu_items = []
-    menu_data = []
-    if utorid in cdf_line:
-        menu_items.append( cdf_line[utorid][IX_EMAIL_CDF])
-        menu_data.append(cdf_line[utorid][IX_EMAIL_CDF])
+    if selected_field:
+        # copy the selected field into clipboard
+        #selected_menu_item = menu_items[resp]
+        print("copy ``" + selected_field + "`` to clipboard")
+        os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
     else:
-        menu_items.append( "no email because " + utorid + " missing in CDF")
-        menu_data.append( "no email because " + utorid + " missing in CDF")
-
-    # display menu of fields in matched student
-    # have to use this for a while to learn what want to see.
-    # quercus has a lot of BS fields, screenfuls.
-    
-    cut_row = 5 #zillions of mark data fields follow
-    for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_line[utorid]):
-        #if data and data != "0.0":
-        menu_items.append(hdr + ": " +  data)
-        menu_data.append(data)
-        cut_row -= 1
-        if cut_row ==0:
-            break
-
-    m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
-    resp = m2.menu()
-    if resp < 0 or  resp >= len(menu_items):
         exit(0)
-
-    # copy the selected field into clipboard
-    #selected_menu_item = menu_items[resp]
-    selected_menu_item = menu_data[resp]
-    print(selected_menu_item)
-    os.system("/bin/echo -n '%s' | pbcopy" % selected_menu_item)
-    exit(0)
