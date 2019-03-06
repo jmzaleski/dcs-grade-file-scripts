@@ -15,14 +15,13 @@ def parse_positional_args():
 
 # read the grades files exported from quercus and make a dict key'd by utorid. 
 # value is list with element from each column
-def read_course_files(CDF_CLASS_FILE,QUERCUS_GRADES_FILE):
-    q_line = quercus_csv_reader_by_utorid.read_dict()
+def read_course_files(CDF_CLASS_FILE,q_line):
     # read the CDF file and make a dict key'd by utorid of each line
     cdf_line = {}
     with open(CDF_CLASS_FILE) as csv_file:
         for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
             cdf_line[a_line[0]] = a_line
-    return (q_line,cdf_line)
+    return cdf_line
 
 def drops(q_line,cdf_line):
     dropped_utorid = set()
@@ -150,7 +149,7 @@ if __name__ == '__main__':
 
     QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
 
-    # so finds my modules both on mac and windows laptops
+    # find python modules on mac,linux and windows laptops
     for dir in [
             '/home/matz/goit/dcs-grade-file-scripts/',
             '/Users/mzaleski/git/dcs-grade-file-scripts' ]:
@@ -158,8 +157,7 @@ if __name__ == '__main__':
 
     (cdf_class_file,quercus_grades_file,query_string) = parse_positional_args()
     quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(quercus_grades_file,QUERCUS_UTORID_COL_NAME)
-
-
-    (q_line,cdf_line) = read_course_files(cdf_class_file,quercus_grades_file)
+    q_line = quercus_csv_reader_by_utorid.read_dict()
+    cdf_line = read_course_files(cdf_class_file,q_line)
     doit(query_string,q_line,cdf_line)
 
