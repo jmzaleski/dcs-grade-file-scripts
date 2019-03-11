@@ -5,13 +5,17 @@ def parse_positional_args():
     "parse the command line parameters of this program"
     import argparse, collections
     parser = argparse.ArgumentParser()
+    # either I don't understand or argparse doesn't like optional positional arguments.
+    # want query_string (last parm) to be optional.
     for tuple in [
-            ("cdf_csv_file",     "class list from CDF"),
-            ("quercus_csv_file", "class list from quercus eg: CSC300H1F-quercus.csv"),
-            ("query_string",     "string to look for") ]:
-        parser.add_argument(tuple[0], help=tuple[1]),
+            #(arg_name,          arg_help_string,                                     nargs)
+            ("cdf_csv_file",     "class list from CDF",                               1),
+            ("quercus_csv_file", "class list from quercus eg: CSC300H1F-quercus.csv", 1),
+            ("query_string",     "string to look for",                                '?')
+            ]:
+        parser.add_argument(tuple[0], help=tuple[1], nargs=tuple[2]),
     args = parser.parse_args()
-    return (args.cdf_csv_file,args.quercus_csv_file, args.query_string)
+    return (args.cdf_csv_file[0],args.quercus_csv_file[0], args.query_string)
 
 # read the grades files exported from quercus and make a dict key'd by utorid. 
 # value is list with element from each column
@@ -49,7 +53,7 @@ def drops(q_line,cdf_line):
             for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
                 print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
 
-    print("likely dropped because not in quercus lecture section", dropped_utorid)
+    print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
     return dropped_utorid
 
 # make a menu item for each student record from quercus matched by the query
@@ -104,7 +108,7 @@ def select_student_field(utorid,q_line,cdf_line):
     m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
     resp = m2.menu()
     if resp < 0 or  resp >= len(menu_items):
-        return null
+        return None
     else:
         return menu_data[resp]
 
@@ -120,7 +124,7 @@ def doit(query_string,q_line,cdf_line):
 
     if len(matched_utorids) == 0:
         print("no students matching", query_string)
-        exit(1)
+        return
 
     # which of the matched utorid's above are in the likely drops? warn.
     for utorid in dropped_utorid & set(matched_utorids):
@@ -140,12 +144,10 @@ def doit(query_string,q_line,cdf_line):
         print("copy ``" + selected_field + "`` to clipboard")
         os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
     else:
-        exit(0)
-
+        return
 
 if __name__ == '__main__': 
     import sys, os, re, csv, functools, collections
-    from csv_file_reader import CsvFileToDictionaryReader
 
     QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
 
@@ -156,8 +158,17 @@ if __name__ == '__main__':
         sys.path.append(dir)
 
     (cdf_class_file,quercus_grades_file,query_string) = parse_positional_args()
+     
+    from csv_file_reader import CsvFileToDictionaryReader
     quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(quercus_grades_file,QUERCUS_UTORID_COL_NAME)
-    q_line = quercus_csv_reader_by_utorid.read_dict()
-    cdf_line = read_course_files(cdf_class_file,q_line)
-    doit(query_string,q_line,cdf_line)
+
+    q_lines = quercus_csv_reader_by_utorid.read_dict()
+    cdf_lines = read_course_files(cdf_class_file,q_lines)
+
+    if query_string:
+        doit(query_string,q_lines,cdf_lines)
+    
+    while True:
+        query_string = input("student to search for >")
+        doit(query_string,q_lines,cdf_lines)
 
