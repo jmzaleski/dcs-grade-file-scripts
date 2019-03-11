@@ -113,7 +113,7 @@ def select_student_field(utorid,q_line,cdf_line):
         return menu_data[resp]
 
 
-def doit(query_string,q_line,cdf_line):
+def search_for(query_string,q_line,cdf_line):
     dropped_utorid = drops(q_line,cdf_line)
 
     # search for the QUERY_STRING in the files and record utorid's of hits in matched_utorid
@@ -166,9 +166,8 @@ if __name__ == '__main__':
     cdf_lines = read_course_files(cdf_class_file,q_lines)
 
     if query_string:
-        doit(query_string,q_lines,cdf_lines)
+        search_for(query_string,q_lines,cdf_lines)
     
     while True:
         query_string = input("student to search for >")
-        doit(query_string,q_lines,cdf_lines)
-
+        search_for(query_string,q_lines,cdf_lines)
