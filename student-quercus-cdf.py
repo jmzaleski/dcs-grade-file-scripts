@@ -53,27 +53,31 @@ def drops(q_line,cdf_line):
             for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
                 print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
 
-    print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
+    if len(dropped_utorid)>0:
+        print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
     return dropped_utorid
 
 # make a menu item for each student record from quercus matched by the query
 # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
+
 def select_student_menu(matched_utorids,q_line,cdf_line):
     choose_student_menu = []
     rev_utorid_map = {}
     for utorid in matched_utorids:
         if utorid in q_line:
             cols = filter(lambda a_col: a_col and a_col != "0.0", q_line[utorid])
+            
             flat_cols = ", ".join(cols)
-            choose_student_menu.append(flat_cols)
-            rev_utorid_map[flat_cols] = utorid
+            l = (flat_cols[:85] + '..') if len(flat_cols) > 75 else flat_cols
+            choose_student_menu.append(l)
+            rev_utorid_map[l] = utorid
 
     from menu import MatzMenu
     menu = MatzMenu(choose_student_menu,"select student: ")
     resp = menu.menu()
     if resp < 0 or resp > len(choose_student_menu)-1:
         print(resp, "is invalid response")
-        exit(2)
+        return None
 
     line = choose_student_menu[resp].rstrip()
     utorid = rev_utorid_map[line]
@@ -123,28 +127,27 @@ def search_for(query_string,q_line,cdf_line):
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
 
     if len(matched_utorids) == 0:
-        print("no students matching", query_string)
-        return
+        print("no students matching ``"+ query_string + "''")
+        return None
 
     # which of the matched utorid's above are in the likely drops? warn.
     for utorid in dropped_utorid & set(matched_utorids):
-        print("\n")
-        print(utorid, "warning: matched student likely has dropped because not in quercus lecture section")
-    print("\n")
+        print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
 
     utorid = select_student_menu(matched_utorids,q_line,cdf_line)
+    if not utorid:
+        return None
     selected_field = select_student_field(utorid,q_line,cdf_line)
 
     if selected_field:
         # copy the selected field into clipboard
-        #selected_menu_item = menu_items[resp]
         print("copy ``" + selected_field + "`` to clipboard")
         os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
     else:
-        return
+        return None
 
 if __name__ == '__main__': 
     import sys, os, re, csv, functools, collections
@@ -169,5 +172,9 @@ if __name__ == '__main__':
         search_for(query_string,q_lines,cdf_lines)
     
     while True:
-        query_string = input("student to search for >")
-        search_for(query_string,q_lines,cdf_lines)
+        try:
+            query_string = input("student to search for >")
+            search_for(query_string,q_lines,cdf_lines)
+        except:
+            print("")
+            exit(0)
