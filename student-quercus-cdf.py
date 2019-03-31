@@ -5,8 +5,6 @@ def parse_positional_args():
     "parse the command line parameters of this program"
     import argparse, collections
     parser = argparse.ArgumentParser()
-    # either I don't understand or argparse doesn't like optional positional arguments.
-    # want query_string (last parm) to be optional.
     for tuple in [
             #(arg_name,          arg_help_string,                                     nargs)
             ("cdf_csv_file",     "class list from CDF",                               1),
@@ -25,7 +23,8 @@ def read_cdf_file(CDF_CLASS_FILE,q_line):
             cdf_line[a_line[0]] = a_line
     return cdf_line
 
-def drops(q_line,cdf_line):
+def dropped_utorid_set(q_line,cdf_line):
+    "return set of likely dropped utorids"
     dropped_utorid = set()
     if not set(q_line.keys()) == set(cdf_line.keys()):
         # find records that don't have a section field containing "CSC"
@@ -69,7 +68,7 @@ def select_student_menu(matched_utorids,q_line,cdf_line):
             l = (flat_cols[:85] + '..') if len(flat_cols) > 75 else flat_cols
             choose_student_menu.append(l)
             rev_utorid_map[l] = utorid
-    print("select student menu..")
+    print("select student by entering number in left column..")
     from menu import MatzMenu
     menu = MatzMenu(choose_student_menu,"select student: ")
     resp = menu.menu()
@@ -83,6 +82,7 @@ def select_student_menu(matched_utorids,q_line,cdf_line):
 
 
 def select_student_field(utorid,q_line,cdf_line):
+    "display menu so user can choose which field they want"
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
     menu_items = []
     menu_data = []
@@ -98,13 +98,19 @@ def select_student_field(utorid,q_line,cdf_line):
     # quercus has a lot of BS fields, screenfuls.
 
     cut_row = 5 #zillions of mark data fields follow
+    all_fields = ""
     for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_line[utorid]):
         #if data and data != "0.0":
         menu_items.append(hdr + ": " +  data)
         menu_data.append(data)
+        all_fields += "|" + data
         cut_row -= 1
         if cut_row ==0:
             break
+
+    # make a bogus all up field to cut/paste. (useful to email to TAs, etc)
+    menu_items.append("all:" + all_fields)
+    menu_data.append(all_fields)
 
     from menu import MatzMenu
     m2 = MatzMenu(menu_items, "option: ") #number of selected menu item
@@ -117,8 +123,6 @@ def select_student_field(utorid,q_line,cdf_line):
 
 def search_for_utorids(query_string,q_line,cdf_line):
     "search for query_string in values of the quercus and cdf dictionaries"
-    dropped_utorid = drops(q_line,cdf_line)
-
     matched_utorids = []
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
@@ -127,48 +131,10 @@ def search_for_utorids(query_string,q_line,cdf_line):
         print("no students matching ``"+ query_string + "''")
         return None
 
-    # which of the matched utorid's above are in the likely drops? warn.
-    for utorid in dropped_utorid & set(matched_utorids):
-        print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
-
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
     return matched_utorids
 
-
-# def search_for(query_string,q_line,cdf_line):
-#     "search for query_string in values of the quercus and cdf dictionaries"
-#     dropped_utorid = drops(q_line,cdf_line)
-
-#     matched_utorids = []
-#     for d in [q_line,cdf_line]:
-#         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
-
-#     if len(matched_utorids) == 0:
-#         print("no students matching ``"+ query_string + "''")
-#         return None
-
-#     # which of the matched utorid's above are in the likely drops? warn.
-#     for utorid in dropped_utorid & set(matched_utorids):
-#         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
-
-#     matched_utorids = list(set(matched_utorids)) # squeeze out dups
-#     matched_utorids.sort()
-
-#     # yucky. present menu to select which utorid hit above really want
-#     #TODO: break this function 
-#     utorid = select_student_menu(matched_utorids,q_line,cdf_line)
-#     if not utorid:
-#         return None
-#     selected_field = select_student_field(utorid,q_line,cdf_line)
-
-#     if selected_field:
-#         # copy the selected field into clipboard
-#         print("copy ``" + selected_field + "`` to clipboard")
-#         os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
-#     else:
-#         return None
-    
 if __name__ == '__main__': 
     import sys, os, re, csv, functools, collections
 
@@ -197,14 +163,23 @@ if __name__ == '__main__':
         try:
             if not is_query_string_in_parms:
                 query_string = input("student to search for >")
-                is_query_string_in_parms = False
+            is_query_string_in_parms = False
             
             matched_utorids = search_for_utorids(query_string,q_lines,cdf_lines)
             if not matched_utorids:
                 continue
+            
+            # warn which of the matched utorid's above are in the likely drops.
+            dropped_utorid = dropped_utorid_set(q_lines,cdf_lines)
+            for utorid in dropped_utorid & set(matched_utorids):
+                print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
+
+            # user selects which student if more than one utorid matched above
             utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
             if not utorid:
                 continue
+
+            # user selects which field of CSV file corresponding to student to copy
             selected_field = select_student_field(utorid,q_lines,cdf_lines)
             if not select_student_field:
                 continue
@@ -215,6 +190,7 @@ if __name__ == '__main__':
             print("")
             exit(0)
 
+        # even uglier?
         # try:
         #     query_string = input("student to search for >")
             
