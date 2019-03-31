@@ -17,9 +17,7 @@ def parse_positional_args():
     args = parser.parse_args()
     return (args.cdf_csv_file[0],args.quercus_csv_file[0], args.query_string)
 
-# read the grades files exported from quercus and make a dict key'd by utorid. 
-# value is list with element from each column
-def read_course_files(CDF_CLASS_FILE,q_line):
+def read_cdf_file(CDF_CLASS_FILE,q_line):
     # read the CDF file and make a dict key'd by utorid of each line
     cdf_line = {}
     with open(CDF_CLASS_FILE) as csv_file:
@@ -71,7 +69,7 @@ def select_student_menu(matched_utorids,q_line,cdf_line):
             l = (flat_cols[:85] + '..') if len(flat_cols) > 75 else flat_cols
             choose_student_menu.append(l)
             rev_utorid_map[l] = utorid
-
+    print("select student menu..")
     from menu import MatzMenu
     menu = MatzMenu(choose_student_menu,"select student: ")
     resp = menu.menu()
@@ -117,11 +115,10 @@ def select_student_field(utorid,q_line,cdf_line):
         return menu_data[resp]
 
 
-def search_for(query_string,q_line,cdf_line):
+def search_for_utorids(query_string,q_line,cdf_line):
+    "search for query_string in values of the quercus and cdf dictionaries"
     dropped_utorid = drops(q_line,cdf_line)
 
-    # search for the QUERY_STRING in the files and record utorid's of hits in matched_utorid
-    # TODO: try out doing this by starting with list of all utorids and filtering away?
     matched_utorids = []
     for d in [q_line,cdf_line]:
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
@@ -136,19 +133,42 @@ def search_for(query_string,q_line,cdf_line):
 
     matched_utorids = list(set(matched_utorids)) # squeeze out dups
     matched_utorids.sort()
+    return matched_utorids
 
-    utorid = select_student_menu(matched_utorids,q_line,cdf_line)
-    if not utorid:
-        return None
-    selected_field = select_student_field(utorid,q_line,cdf_line)
 
-    if selected_field:
-        # copy the selected field into clipboard
-        print("copy ``" + selected_field + "`` to clipboard")
-        os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
-    else:
-        return None
+# def search_for(query_string,q_line,cdf_line):
+#     "search for query_string in values of the quercus and cdf dictionaries"
+#     dropped_utorid = drops(q_line,cdf_line)
 
+#     matched_utorids = []
+#     for d in [q_line,cdf_line]:
+#         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
+
+#     if len(matched_utorids) == 0:
+#         print("no students matching ``"+ query_string + "''")
+#         return None
+
+#     # which of the matched utorid's above are in the likely drops? warn.
+#     for utorid in dropped_utorid & set(matched_utorids):
+#         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
+
+#     matched_utorids = list(set(matched_utorids)) # squeeze out dups
+#     matched_utorids.sort()
+
+#     # yucky. present menu to select which utorid hit above really want
+#     #TODO: break this function 
+#     utorid = select_student_menu(matched_utorids,q_line,cdf_line)
+#     if not utorid:
+#         return None
+#     selected_field = select_student_field(utorid,q_line,cdf_line)
+
+#     if selected_field:
+#         # copy the selected field into clipboard
+#         print("copy ``" + selected_field + "`` to clipboard")
+#         os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
+#     else:
+#         return None
+    
 if __name__ == '__main__': 
     import sys, os, re, csv, functools, collections
 
@@ -165,16 +185,48 @@ if __name__ == '__main__':
     from csv_file_reader import CsvFileToDictionaryReader
     quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(quercus_grades_file,QUERCUS_UTORID_COL_NAME)
 
+    # read the quercus exported csv file into dict keyed by utorid
     q_lines = quercus_csv_reader_by_utorid.read_dict()
-    cdf_lines = read_course_files(cdf_class_file,q_lines)
 
-    if query_string:
-        search_for(query_string,q_lines,cdf_lines)
-    
+    # read the CDF file into a dict keyed by utorid
+    cdf_lines = read_cdf_file(cdf_class_file,q_lines)
+
+    is_query_string_in_parms = query_string and len(query_string)>0
+
     while True:
         try:
-            query_string = input("student to search for >")
-            search_for(query_string,q_lines,cdf_lines)
+            if not is_query_string_in_parms:
+                query_string = input("student to search for >")
+                is_query_string_in_parms = False
+            
+            matched_utorids = search_for_utorids(query_string,q_lines,cdf_lines)
+            if not matched_utorids:
+                continue
+            utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
+            if not utorid:
+                continue
+            selected_field = select_student_field(utorid,q_lines,cdf_lines)
+            if not select_student_field:
+                continue
+            # copy the selected field into clipboard
+            print("copy ``" + selected_field + "`` to clipboard")
+            os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
         except:
             print("")
             exit(0)
+
+        # try:
+        #     query_string = input("student to search for >")
+            
+        #     matched_utorids = search_for_utorids(query_string,q_lines,cdf_lines)
+        #     if matched_utorids:
+        #         utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
+        #         if utorid:
+        #             selected_field = select_student_field(utorid,q_lines,cdf_lines)
+        #             if select_student_field:
+        #                 print("copy ``" + selected_field + "`` to clipboard")
+        #                 os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
+        # except:
+        #     print("")
+        #     exit(0)
+            
