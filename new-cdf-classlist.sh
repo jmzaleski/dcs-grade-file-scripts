@@ -21,7 +21,10 @@ scp matz@cdf.utoronto.ca:/u/csc/instructors/classlists/$CDF $TMP || die scp fail
 set -
 
 # sort by 
-sort --field-separator=,  --key=1,1 $TMP   > $TMP_SORT || die sort $TMP failed
+sort --field-separator=,  --key=1,1 $TMP \
+	 | sed -e 's/,LEC /,/' \
+	 | sed -e 's/,99/,099/' \
+	 > $TMP_SORT || die sort $TMP failed
 
 if test ! -f $CLASSLIST
 then 
