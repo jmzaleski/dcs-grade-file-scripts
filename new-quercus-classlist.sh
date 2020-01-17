@@ -36,7 +36,7 @@ read -p "hit return to use grades file exported from quercus: $NEWEST >" JUNK
 #sort by utorid
 # nevermind section
 SORT="sort --field-separator=,  --key=1,1"
-CUT="cut -d, -f1-5"
+CUT="cut -d, -f1-5,7"
 
 set -x
 cp $NEWEST $TMP || die failed to copy $NEWEST $TMP
