@@ -13,13 +13,18 @@ test -d $GBIN || die no grades bin in $GBIN
 
 # oops CDF is now a misnomer for this variable
 CDF="CSC"$COURSE$SESSION
-CLASSLIST=$CDF-quercus.csv
+QCLASSLIST=$CDF-quercus.csv
 
-#test -f $CLASSLIST || die $0: cannot find class list $CLASSLIST
+#test -f $QCLASSLIST || die $0: cannot find class list $QCLASSLIST
 
-TMP=/tmp/CL$$
-Q_TMP_SORT=/tmp/q-CL$$
-TMP_SORT=/tmp/CL-sorted$$
+# this file contains the freshly exported and downloaded quercus grades
+QFRESH=/tmp/CL$$
+
+# this file is the fresh export sorted
+FRESH_SORT=/tmp/CL-sorted$$
+
+# the pre-existing quercus file sorted
+QCLASSLIST_SORT=/tmp/q-CL$$
 
 set -x
 ls -ltr ~/Downloads/*Grades-CSC$COURSE*.csv | tail -5
@@ -34,85 +39,85 @@ echo guessing that newest quercus export file is $NEWEST
 read -p "hit return to use grades file exported from quercus: $NEWEST >" JUNK
 
 #sort by utorid
-# nevermind section
 SORT="sort --field-separator=,  --key=1,1"
+# cut out the columns we need -- we don't need grades, just the student ID fields
 CUT="cut -d, -f1-5,7"
 
 set -x
-cp $NEWEST $TMP || die failed to copy $NEWEST $TMP
-
-(head -n 1 $CLASSLIST && tail -n +4 $CLASSLIST | $SORT ) | $CUT  > $Q_TMP_SORT || die sort $CLASSLIST failed
-(head -n 1 $TMP       && tail -n +3 $TMP       | $SORT ) | $CUT  > $TMP_SORT || die sort $TMP failed
+cp $NEWEST $QFRESH || die failed to copy $NEWEST $QFRESH
+(head -n 1 $QFRESH       && tail -n +3 $QFRESH       | $SORT ) | $CUT  > $FRESH_SORT || die sort $QFRESH failed
 set -
 
-if test ! -f $CLASSLIST
+if test ! -f $QCLASSLIST
 then
-	echo $0: cannot find class list $CLASSLIST creating one..	
-	read -p "hit enter to run: /bin/cp -i $TMP_SORT $CLASSLIST >" JUNK
-	/bin/cp -i $TMP_SORT $CLASSLIST
+	echo $0: cannot find class list $QCLASSLIST creating one..	
+	read -p "hit enter to run: /bin/cp -i $FRESH_SORT $QCLASSLIST >" JUNK
+	/bin/cp -i $FRESH_SORT $QCLASSLIST
 	echo fresh class list created from CDF
-	ls -l $CLASSLIST
+	ls -l $QCLASSLIST
 	exit
 fi	
 
+(head -n 1 $QCLASSLIST && tail -n +4 $QCLASSLIST | $SORT ) | $CUT  > $QCLASSLIST_SORT || die sort $QCLASSLIST failed
+
 echo -n num drops
 # comm old new
-comm -13 $TMP_SORT $Q_TMP_SORT  | wc -l
+comm -13 $FRESH_SORT $QCLASSLIST_SORT  | wc -l
 echo -n num adds
-comm -23 $TMP_SORT $Q_TMP_SORT | wc -l
+comm -23 $FRESH_SORT $QCLASSLIST_SORT | wc -l
 
 echo to investigate following do:
-echo xdiff $TMP_SORT $Q_TMP_SORT
+echo xdiff $FRESH_SORT $QCLASSLIST_SORT
 
 read -p 'comm downloaded class list' junk
 
 echo drops:
 echo  '---------------------'
-comm -13 $TMP_SORT $Q_TMP_SORT
+comm -13 $FRESH_SORT $QCLASSLIST_SORT
 echo '---------------------'
 echo adds:
-comm -23 $TMP_SORT $Q_TMP_SORT
+comm -23 $FRESH_SORT $QCLASSLIST_SORT
 echo '---------------------'
 
 echo to investigate following do:
-echo xdiff $TMP_SORT $$Q_TMP_SORT
+echo xdiff $FRESH_SORT $$QCLASSLIST_SORT
 
 read -p 'diff previous and newly downloaded class list' junk
 
 set -x
-diff $TMP_SORT $Q_TMP_SORT
+diff $FRESH_SORT $QCLASSLIST_SORT
 set -
 
 echo too complicated\? try:
-echo xdiff $TMP_SORT $Q_TMP_SORT
+echo xdiff $FRESH_SORT $QCLASSLIST_SORT
 
 read -p "continue to utorid's" JUNK
 echo
 echo utorids of drops:
 echo
-comm -13 $TMP_SORT $Q_TMP_SORT | cut -d, -f5
+comm -13 $FRESH_SORT $QCLASSLIST_SORT | cut -d, -f5
 
 echo
 read -p "comm -23.. (utorid of new students) ..  >" junk
-comm -23 $TMP_SORT $Q_TMP_SORT | cut -d, -f5
+comm -23 $FRESH_SORT $QCLASSLIST_SORT | cut -d, -f5
 
-read -p "last chance before scribbling on $CLASSLIST:" junk
+read -p "last chance before scribbling on $QCLASSLIST:" junk
 
-bf=$(backfilename.sh $CLASSLIST)
-mv $CLASSLIST $bf || die failed to backup $CLASSLIST
+bf=$(backfilename.sh $QCLASSLIST)
+mv $QCLASSLIST $bf || die failed to backup $QCLASSLIST
 set -x
-mv -i $NEWEST $CLASSLIST || die failed to mv $TMP_SORT $CLASSLIST 
+mv -i $NEWEST $QCLASSLIST || die failed to mv $FRESH_SORT $QCLASSLIST 
 set -
 echo backup saved in $bf
 ls -l $bf
 
 echo 
 echo to undo what just happened:
-echo cp $bf $CLASSLIST
+echo cp $bf $QCLASSLIST
 
 echo 
 echo to investigate what happened:
-echo xdiff $bf  $CLASSLIST
+echo xdiff $bf  $QCLASSLIST
 echo
 
 
