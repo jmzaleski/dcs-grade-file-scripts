@@ -183,26 +183,20 @@ if __name__ == '__main__':
             selected_field = select_student_field(utorid,q_lines,cdf_lines)
             if not select_student_field:
                 continue
+            
             # copy the selected field into clipboard
             print("copy ``" + selected_field + "`` to clipboard")
             os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
+
+            # and now try and open the mailto in default mail client.
+            if selected_field.find("@") > 0:
+                resp = input("open mailto: ?  [yYnN]* >")
+                if resp.lower().startswith( 'y'):
+                    url = "mailto:%s" % selected_field
+                    import webbrowser
+                    webbrowser.open(url)
         except:
             print("")
             exit(0)
 
-        # even uglier?
-        # try:
-        #     query_string = input("student to search for >")
-            
-        #     matched_utorids = search_for_utorids(query_string,q_lines,cdf_lines)
-        #     if matched_utorids:
-        #         utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
-        #         if utorid:
-        #             selected_field = select_student_field(utorid,q_lines,cdf_lines)
-        #             if select_student_field:
-        #                 print("copy ``" + selected_field + "`` to clipboard")
-        #                 os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
-        # except:
-        #     print("")
-        #     exit(0)
             
