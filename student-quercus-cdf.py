@@ -23,13 +23,13 @@ def read_cdf_file(CDF_CLASS_FILE):
             cdf_map[a_line[0]] = a_line
     return cdf_map
 
-def dropped_utorid_set(q_map,cdf_line):
+def dropped_utorid_set(q_map,cdf_map):
     "return set of likely dropped utorids"
     dropped_utorid = set()
-    if not set(q_map.keys()) == set(cdf_line.keys()):
+    if not set(q_map.keys()) == set(cdf_map.keys()):
         # find records that don't have a section field containing "CSC"
         # (for drops, quercus removes the lecture section but not the tutorial section)
-        for utorid in set(q_map.keys()).difference(set(cdf_line.keys())):
+        for utorid in set(q_map.keys()).difference(set(cdf_map.keys())):
             # TODO: make new method in csv_reader to fetch named column ? ask gary.
             if len(q_map[utorid])<5:
                 print("ohoh quercus line has less than four fields..how did you do that??")
@@ -44,10 +44,10 @@ def dropped_utorid_set(q_map,cdf_line):
             # debug output for diagnosing differences
             print("CDF classlist and quercus grade file do not contain identical sets of utorids")
             print("records in quercus but not CDF (drops?)")
-            for utorid in set(q_map.keys()).difference(set(cdf_line.keys())):
+            for utorid in set(q_map.keys()).difference(set(cdf_map.keys())):
                 print( " ".join(filter(lambda s: len(s)>0,q_map[utorid]))[0:80]) #skip empty fields
             print("records in CDF but not quercus (adds?)")
-            for utorid in set(cdf_line.keys()).difference(set(q_map.keys())):
+            for utorid in set(cdf_map.keys()).difference(set(q_map.keys())):
                 print( " ".join(filter(lambda s: len(s)>0,q_map[utorid]))[0:80]) #skip empty fields
 
     if len(dropped_utorid)>0:
@@ -57,7 +57,7 @@ def dropped_utorid_set(q_map,cdf_line):
 # make a menu item for each student record from quercus matched by the query
 # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
 
-def select_student_menu(matched_utorids,q_map,cdf_line):
+def select_student_menu(matched_utorids,q_map,cdf_map):
     "print a menu to choose a utorid of those in matched_utorids"
     choose_student_menu = []
     rev_utorid_map = {}
@@ -82,15 +82,15 @@ def select_student_menu(matched_utorids,q_map,cdf_line):
     return utorid
 
 
-def select_student_field(utorid,q_map,cdf_line):
+def select_student_field(utorid,q_map,cdf_map):
     "display menu so user can choose which field they want"
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
     menu_items = []
     menu_data = []
     # pluck the email out of cdf fields (IX_EMAIL_CDF magic number of field)
-    if utorid in cdf_line:
-        menu_items.append( cdf_line[utorid][IX_EMAIL_CDF])
-        menu_data.append(cdf_line[utorid][IX_EMAIL_CDF])
+    if utorid in cdf_map:
+        menu_items.append( cdf_map[utorid][IX_EMAIL_CDF])
+        menu_data.append(cdf_map[utorid][IX_EMAIL_CDF])
     else:
         menu_items.append( "no email because " + utorid + " missing in CDF")
         menu_data.append( "no email because " + utorid + " missing in CDF")
@@ -174,8 +174,7 @@ if __name__ == '__main__':
             matched_utorids = search_for_utorids(query_string,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if not matched_utorids:
                 continue
-            
-            # warn which of the matched utorid's above are in the likely drops.
+
             dropped_utorid = dropped_utorid_set(utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if False:
                 for utorid in dropped_utorid & set(matched_utorids):
@@ -191,11 +190,10 @@ if __name__ == '__main__':
             if not select_student_field:
                 continue
             
-            # copy the selected field into clipboard
             print("copy ``" + selected_field + "`` to clipboard")
             os.system("/bin/echo -n '%s' | pbcopy" % selected_field)
 
-            # and now try and open the mailto in default mail client.
+            # if email selected.. try and open the mailto in default mail client.
             if selected_field.find("@") > 0:
                 resp = input("open mailto: ?  [yYnN]* >")
                 if resp.lower().startswith( 'y'):
