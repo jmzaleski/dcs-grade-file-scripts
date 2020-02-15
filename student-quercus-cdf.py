@@ -15,7 +15,7 @@ def parse_positional_args():
     args = parser.parse_args()
     return (args.cdf_csv_file[0],args.quercus_csv_file[0], args.query_string)
 
-def read_cdf_file(CDF_CLASS_FILE,q_line):
+def read_cdf_file(CDF_CLASS_FILE):
     # read the CDF file and make a dict key'd by utorid of each line
     cdf_line = {}
     with open(CDF_CLASS_FILE) as csv_file:
@@ -87,6 +87,7 @@ def select_student_field(utorid,q_line,cdf_line):
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
     menu_items = []
     menu_data = []
+    # pluck the email out of cdf fields (IX_EMAIL_CDF magic number of field)
     if utorid in cdf_line:
         menu_items.append( cdf_line[utorid][IX_EMAIL_CDF])
         menu_data.append(cdf_line[utorid][IX_EMAIL_CDF])
@@ -96,7 +97,7 @@ def select_student_field(utorid,q_line,cdf_line):
 
     # display menu of fields in matched student
     # have to use this for a while to learn what want to see.
-    # quercus has a lot of BS fields, screenfuls.
+    # quercus has many many fields because grades add much cruft.
 
     cut_field = 6 #zillions of mark data fields follow
     all_fields = ""
@@ -109,7 +110,7 @@ def select_student_field(utorid,q_line,cdf_line):
         if cut_field ==0:
             break
 
-    # make a bogus all up field to cut/paste. (useful to email to TAs, etc)
+    # make an all up field (useful to share with TAs, etc)
     menu_items.append("all:" + all_fields)
     menu_data.append(all_fields)
 
@@ -122,10 +123,10 @@ def select_student_field(utorid,q_line,cdf_line):
         return menu_data[resp]
 
 
-def search_for_utorids(query_string,q_lines,cdf_lines):
-    "return list of utorid's from records matching query_string in q_lines, cdf_lines"
+def search_for_utorids(query_string,q_lines,utorid_to_cdf_line_map):
+    "return list of utorid's from records matching query_string in q_lines, utorid_to_cdf_line_map"
     matched_utorids = []
-    for d in [q_lines,cdf_lines]:
+    for d in [q_lines,utorid_to_cdf_line_map]:
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
 
     if len(matched_utorids) == 0:
@@ -156,12 +157,12 @@ if __name__ == '__main__':
     q_lines = quercus_csv_reader_by_utorid.read_dict()
 
     # read the CDF file into a dict keyed by utorid
-    cdf_lines = read_cdf_file(cdf_class_file,q_lines)
+    utorid_to_cdf_line_map = read_cdf_file(cdf_class_file)
 
     #TODO: this is bullshit confusing state
     is_query_string_in_parms = query_string and len(query_string)>0
 
-    for utorid in dropped_utorid_set(q_lines,cdf_lines):
+    for utorid in dropped_utorid_set(q_lines,utorid_to_cdf_line_map):
         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
     while True:
@@ -170,23 +171,23 @@ if __name__ == '__main__':
                 query_string = input("student to search for >")
             is_query_string_in_parms = False
             
-            matched_utorids = search_for_utorids(query_string,q_lines,cdf_lines)
+            matched_utorids = search_for_utorids(query_string,q_lines,utorid_to_cdf_line_map)
             if not matched_utorids:
                 continue
             
             # warn which of the matched utorid's above are in the likely drops.
-            dropped_utorid = dropped_utorid_set(q_lines,cdf_lines)
+            dropped_utorid = dropped_utorid_set(q_lines,utorid_to_cdf_line_map)
             if False:
                 for utorid in dropped_utorid & set(matched_utorids):
                     print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
             # user selects which student if more than one utorid matched above
-            utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
+            utorid = select_student_menu(matched_utorids,q_lines,utorid_to_cdf_line_map)
             if not utorid:
                 continue
 
             # user selects which field of CSV file corresponding to student to copy
-            selected_field = select_student_field(utorid,q_lines,cdf_lines)
+            selected_field = select_student_field(utorid,q_lines,utorid_to_cdf_line_map)
             if not select_student_field:
                 continue
             
