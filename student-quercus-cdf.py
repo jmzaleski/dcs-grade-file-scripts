@@ -58,6 +58,7 @@ def dropped_utorid_set(q_line,cdf_line):
 # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
 
 def select_student_menu(matched_utorids,q_line,cdf_line):
+    "print a menu to choose a utorid of those in matched_utorids"
     choose_student_menu = []
     rev_utorid_map = {}
     for utorid in matched_utorids:
@@ -97,15 +98,15 @@ def select_student_field(utorid,q_line,cdf_line):
     # have to use this for a while to learn what want to see.
     # quercus has a lot of BS fields, screenfuls.
 
-    cut_row = 5 #zillions of mark data fields follow
+    cut_field = 6 #zillions of mark data fields follow
     all_fields = ""
     for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_line[utorid]):
         #if data and data != "0.0":
         menu_items.append(hdr + ": " +  data)
         menu_data.append(data)
         all_fields += "|" + data
-        cut_row -= 1
-        if cut_row ==0:
+        cut_field -= 1
+        if cut_field ==0:
             break
 
     # make a bogus all up field to cut/paste. (useful to email to TAs, etc)
@@ -160,8 +161,7 @@ if __name__ == '__main__':
     #TODO: this is bullshit confusing state
     is_query_string_in_parms = query_string and len(query_string)>0
 
-    s = dropped_utorid_set(q_lines,cdf_lines)
-    for utorid in s:
+    for utorid in dropped_utorid_set(q_lines,cdf_lines):
         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
     while True:
