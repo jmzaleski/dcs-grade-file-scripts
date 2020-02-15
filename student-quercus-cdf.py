@@ -123,10 +123,10 @@ def select_student_field(utorid,q_line,cdf_line):
         return menu_data[resp]
 
 
-def search_for_utorids(query_string,q_lines,utorid_to_cdf_line_map):
-    "return list of utorid's from records matching query_string in q_lines, utorid_to_cdf_line_map"
+def search_for_utorids(query_string,utorid_to_quercus_line_map,utorid_to_cdf_line_map):
+    "return list of utorid's from records matching query_string in utorid_to_quercus_line_map, utorid_to_cdf_line_map"
     matched_utorids = []
-    for d in [q_lines,utorid_to_cdf_line_map]:
+    for d in [utorid_to_quercus_line_map,utorid_to_cdf_line_map]:
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
 
     if len(matched_utorids) == 0:
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(quercus_grades_file,QUERCUS_UTORID_COL_NAME)
 
     # read the quercus exported csv file into dict keyed by utorid
-    q_lines = quercus_csv_reader_by_utorid.read_dict()
+    utorid_to_quercus_line_map = quercus_csv_reader_by_utorid.read_dict()
 
     # read the CDF file into a dict keyed by utorid
     utorid_to_cdf_line_map = read_cdf_file(cdf_class_file)
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     #TODO: this is bullshit confusing state
     is_query_string_in_parms = query_string and len(query_string)>0
 
-    for utorid in dropped_utorid_set(q_lines,utorid_to_cdf_line_map):
+    for utorid in dropped_utorid_set(utorid_to_quercus_line_map,utorid_to_cdf_line_map):
         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
     while True:
@@ -171,23 +171,23 @@ if __name__ == '__main__':
                 query_string = input("student to search for >")
             is_query_string_in_parms = False
             
-            matched_utorids = search_for_utorids(query_string,q_lines,utorid_to_cdf_line_map)
+            matched_utorids = search_for_utorids(query_string,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if not matched_utorids:
                 continue
             
             # warn which of the matched utorid's above are in the likely drops.
-            dropped_utorid = dropped_utorid_set(q_lines,utorid_to_cdf_line_map)
+            dropped_utorid = dropped_utorid_set(utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if False:
                 for utorid in dropped_utorid & set(matched_utorids):
                     print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
             # user selects which student if more than one utorid matched above
-            utorid = select_student_menu(matched_utorids,q_lines,utorid_to_cdf_line_map)
+            utorid = select_student_menu(matched_utorids,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if not utorid:
                 continue
 
             # user selects which field of CSV file corresponding to student to copy
-            selected_field = select_student_field(utorid,q_lines,utorid_to_cdf_line_map)
+            selected_field = select_student_field(utorid,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if not select_student_field:
                 continue
             
