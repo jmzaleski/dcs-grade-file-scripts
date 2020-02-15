@@ -121,10 +121,10 @@ def select_student_field(utorid,q_line,cdf_line):
         return menu_data[resp]
 
 
-def search_for_utorids(query_string,q_line,cdf_line):
-    "search for query_string in values of the quercus and cdf dictionaries"
+def search_for_utorids(query_string,q_lines,cdf_lines):
+    "return list of utorid's from records matching query_string in q_lines, cdf_lines"
     matched_utorids = []
-    for d in [q_line,cdf_line]:
+    for d in [q_lines,cdf_lines]:
         matched_utorids += filter(lambda u: re.search(query_string,''.join(d[u]),re.IGNORECASE), d.keys())
 
     if len(matched_utorids) == 0:
@@ -157,6 +157,7 @@ if __name__ == '__main__':
     # read the CDF file into a dict keyed by utorid
     cdf_lines = read_cdf_file(cdf_class_file,q_lines)
 
+    #TODO: this is bullshit confusing state
     is_query_string_in_parms = query_string and len(query_string)>0
 
     while True:
