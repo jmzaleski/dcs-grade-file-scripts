@@ -17,25 +17,25 @@ def parse_positional_args():
 
 def read_cdf_file(CDF_CLASS_FILE):
     # read the CDF file and make a dict key'd by utorid of each line
-    cdf_line = {}
+    cdf_map = {}
     with open(CDF_CLASS_FILE) as csv_file:
         for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
-            cdf_line[a_line[0]] = a_line
-    return cdf_line
+            cdf_map[a_line[0]] = a_line
+    return cdf_map
 
-def dropped_utorid_set(q_line,cdf_line):
+def dropped_utorid_set(q_map,cdf_line):
     "return set of likely dropped utorids"
     dropped_utorid = set()
-    if not set(q_line.keys()) == set(cdf_line.keys()):
+    if not set(q_map.keys()) == set(cdf_line.keys()):
         # find records that don't have a section field containing "CSC"
         # (for drops, quercus removes the lecture section but not the tutorial section)
-        for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
+        for utorid in set(q_map.keys()).difference(set(cdf_line.keys())):
             # TODO: make new method in csv_reader to fetch named column ? ask gary.
-            if len(q_line[utorid])<5:
+            if len(q_map[utorid])<5:
                 print("ohoh quercus line has less than four fields..how did you do that??")
-                print(q_line[utorid])
+                print(q_map[utorid])
                 exit(2)
-            if len(q_line[utorid][4]) >0 and q_line[utorid][4].find("CSC") < 0:
+            if len(q_map[utorid][4]) >0 and q_map[utorid][4].find("CSC") < 0:
                 dropped_utorid.add(utorid)
                 # print(utorid,"probably dropped because doesn't appear to be in lecture section")
         # compare utorid's to help catch case when files are out-of-date
@@ -44,11 +44,11 @@ def dropped_utorid_set(q_line,cdf_line):
             # debug output for diagnosing differences
             print("CDF classlist and quercus grade file do not contain identical sets of utorids")
             print("records in quercus but not CDF (drops?)")
-            for utorid in set(q_line.keys()).difference(set(cdf_line.keys())):
-                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+            for utorid in set(q_map.keys()).difference(set(cdf_line.keys())):
+                print( " ".join(filter(lambda s: len(s)>0,q_map[utorid]))[0:80]) #skip empty fields
             print("records in CDF but not quercus (adds?)")
-            for utorid in set(cdf_line.keys()).difference(set(q_line.keys())):
-                print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
+            for utorid in set(cdf_line.keys()).difference(set(q_map.keys())):
+                print( " ".join(filter(lambda s: len(s)>0,q_map[utorid]))[0:80]) #skip empty fields
 
     if len(dropped_utorid)>0:
         if False: print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
@@ -57,13 +57,13 @@ def dropped_utorid_set(q_line,cdf_line):
 # make a menu item for each student record from quercus matched by the query
 # nb utorids come from the union of quercus and cdf, so there might not be a line in quercus
 
-def select_student_menu(matched_utorids,q_line,cdf_line):
+def select_student_menu(matched_utorids,q_map,cdf_line):
     "print a menu to choose a utorid of those in matched_utorids"
     choose_student_menu = []
     rev_utorid_map = {}
     for utorid in matched_utorids:
-        if utorid in q_line:
-            cols = filter(lambda a_col: a_col and a_col != "0.0", q_line[utorid])
+        if utorid in q_map:
+            cols = filter(lambda a_col: a_col and a_col != "0.0", q_map[utorid])
             
             flat_cols = ", ".join(cols)
             l = (flat_cols[:85] + '..') if len(flat_cols) > 75 else flat_cols
@@ -82,7 +82,7 @@ def select_student_menu(matched_utorids,q_line,cdf_line):
     return utorid
 
 
-def select_student_field(utorid,q_line,cdf_line):
+def select_student_field(utorid,q_map,cdf_line):
     "display menu so user can choose which field they want"
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
     menu_items = []
@@ -101,7 +101,7 @@ def select_student_field(utorid,q_line,cdf_line):
 
     cut_field = 6 #zillions of mark data fields follow
     all_fields = ""
-    for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_line[utorid]):
+    for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_map[utorid]):
         #if data and data != "0.0":
         menu_items.append(hdr + ": " +  data)
         menu_data.append(data)
