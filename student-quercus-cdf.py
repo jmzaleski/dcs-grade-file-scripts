@@ -51,7 +51,7 @@ def dropped_utorid_set(q_line,cdf_line):
                 print( " ".join(filter(lambda s: len(s)>0,q_line[utorid]))[0:80]) #skip empty fields
 
     if len(dropped_utorid)>0:
-        print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
+        if False: print("warning: following likely dropped because not in quercus lecture section", dropped_utorid)
     return dropped_utorid
 
 # make a menu item for each student record from quercus matched by the query
@@ -160,6 +160,10 @@ if __name__ == '__main__':
     #TODO: this is bullshit confusing state
     is_query_string_in_parms = query_string and len(query_string)>0
 
+    s = dropped_utorid_set(q_lines,cdf_lines)
+    for utorid in s:
+        print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
+
     while True:
         try:
             if not is_query_string_in_parms:
@@ -172,8 +176,9 @@ if __name__ == '__main__':
             
             # warn which of the matched utorid's above are in the likely drops.
             dropped_utorid = dropped_utorid_set(q_lines,cdf_lines)
-            for utorid in dropped_utorid & set(matched_utorids):
-                print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
+            if False:
+                for utorid in dropped_utorid & set(matched_utorids):
+                    print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
             # user selects which student if more than one utorid matched above
             utorid = select_student_menu(matched_utorids,q_lines,cdf_lines)
