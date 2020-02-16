@@ -79,10 +79,11 @@ def select_student_menu(matched_utorids,q_map,cdf_map):
 
     line = choose_student_menu[resp].rstrip()
     utorid = rev_utorid_map[line]
+    print("got utorid", utorid)
     return utorid
 
 
-def select_student_field(utorid,q_map,cdf_map):
+def select_student_field(utorid,q_map,cdf_map,q_col_headers):
     "display menu so user can choose which field they want"
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
     menu_items = []
@@ -98,10 +99,10 @@ def select_student_field(utorid,q_map,cdf_map):
     # display menu of fields in matched student
     # have to use this for a while to learn what want to see.
     # quercus has many many fields because grades add much cruft.
-
+    print("q_map[utorid]",q_map[utorid])
     cut_field = 6 #zillions of mark data fields follow
     all_fields = ""
-    for (hdr,data) in zip(quercus_csv_reader_by_utorid.col_headers,q_map[utorid]):
+    for (hdr,data) in zip(q_col_headers,q_map[utorid]):
         #if data and data != "0.0":
         menu_items.append(hdr + ": " +  data)
         menu_data.append(data)
@@ -137,33 +138,58 @@ def search_for_utorids(query_string,utorid_to_quercus_line_map,utorid_to_cdf_lin
     matched_utorids.sort()
     return matched_utorids
 
+import functools
+def read_dict(fn,col_name):
+    """read csv file returning dict with association for each line in fn, keyed by field in col_name"""
+    key_col_number = None
+        
+    with open(fn) as csv_file:
+        csv_file_reader = csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)
+        # squirrel away lines containing column headers and mysterious second line
+        col_headers = next(csv_file_reader)
+        line2 = next(csv_file_reader)
+        key_col_number = col_headers.index(col_name) #throws if not found
+        def acc(d, item):
+            d[item[key_col_number]] = item
+            return d
+        return functools.reduce(acc, csv_file_reader, {})
+
 if __name__ == '__main__': 
     import sys, os, re, csv, functools, collections
 
+    #this is the quercus column header naming the utorid column in a grades file
     QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
 
     # find python modules on mac,linux and windows laptops
-    for dir in [
-            '/home/matz/goit/dcs-grade-file-scripts/',
-            '/Users/mzaleski/git/dcs-grade-file-scripts' ]:
+    for dir in ['/home/matz/goit/dcs-grade-file-scripts/',
+                '/Users/mzaleski/git/dcs-grade-file-scripts' ]:
         sys.path.append(dir)
 
     (cdf_class_file,quercus_grades_file,query_string) = parse_positional_args()
-     
-    from csv_file_reader import CsvFileToDictionaryReader
-    quercus_csv_reader_by_utorid = CsvFileToDictionaryReader(quercus_grades_file,QUERCUS_UTORID_COL_NAME)
 
-    # read the quercus exported csv file into dict keyed by utorid
-    utorid_to_quercus_line_map = quercus_csv_reader_by_utorid.read_dict()
+    # will need column headers later to print menu
+    q_col_headers = None
+    # read the quercus exported grade CSV file into dict keyed by utorid
+    utorid_to_quercus_line_map = None
+    with open(quercus_grades_file) as csv_file:
+        csv_file_reader = csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)
+        q_col_headers = next(csv_file_reader)
+        next(csv_file_reader) 
+        def acc(d, item):
+            d[item[q_col_headers.index(QUERCUS_UTORID_COL_NAME)]] = item
+            return d
+        utorid_to_quercus_line_map = functools.reduce(acc, csv_file_reader, {})
+
+    #print("utorid_to_quercus_line_map",utorid_to_quercus_line_map)
 
     # read the CDF file into a dict keyed by utorid
     utorid_to_cdf_line_map = read_cdf_file(cdf_class_file)
 
-    #TODO: this is bullshit confusing state
-    is_query_string_in_parms = query_string and len(query_string)>0
-
     for utorid in dropped_utorid_set(utorid_to_quercus_line_map,utorid_to_cdf_line_map):
         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
+
+    #TODO: this is bullshit confusing state
+    is_query_string_in_parms = query_string and len(query_string)>0
 
     while True:
         try:
@@ -186,8 +212,8 @@ if __name__ == '__main__':
                 continue
 
             # user selects which field of CSV file corresponding to student to copy
-            selected_field = select_student_field(utorid,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
-            if not select_student_field:
+            selected_field = select_student_field(utorid,utorid_to_quercus_line_map,utorid_to_cdf_line_map,q_col_headers)
+            if not selected_field:
                 continue
             
             print("copy ``" + selected_field + "`` to clipboard")
