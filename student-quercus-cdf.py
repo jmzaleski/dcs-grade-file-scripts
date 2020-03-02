@@ -79,7 +79,7 @@ def select_student_menu(matched_utorids,q_map,cdf_map):
 
     line = choose_student_menu[resp].rstrip()
     utorid = rev_utorid_map[line]
-    print("got utorid", utorid)
+    #print("got utorid", utorid)
     return utorid
 
 
@@ -99,7 +99,7 @@ def select_student_field(utorid,q_map,cdf_map,q_col_headers):
     # display menu of fields in matched student
     # have to use this for a while to learn what want to see.
     # quercus has many many fields because grades add much cruft.
-    print("q_map[utorid]",q_map[utorid])
+    #print("q_map[utorid]",q_map[utorid])
     cut_field = 6 #zillions of mark data fields follow
     all_fields = ""
     for (hdr,data) in zip(q_col_headers,q_map[utorid]):
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     import sys, os, re, csv, functools, collections
 
     #this is the quercus column header naming the utorid column in a grades file
-    QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # "SIS Login ID" is quercus for utorid
+    QUERCUS_UTORID_COL_NAME = "SIS Login ID"     # what quercus calls utorid
 
     # find python modules on mac,linux and windows laptops
     for dir in ['/home/matz/goit/dcs-grade-file-scripts/',
@@ -180,15 +180,14 @@ if __name__ == '__main__':
             return d
         utorid_to_quercus_line_map = functools.reduce(acc, csv_file_reader, {})
 
-    #print("utorid_to_quercus_line_map",utorid_to_quercus_line_map)
+    if False: print("utorid_to_quercus_line_map",utorid_to_quercus_line_map)
 
-    # read the CDF file into a dict keyed by utorid
     utorid_to_cdf_line_map = read_cdf_file(cdf_class_file)
 
     for utorid in dropped_utorid_set(utorid_to_quercus_line_map,utorid_to_cdf_line_map):
         print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
-    #TODO: this is bullshit confusing state
+    #TODO: this bullshit confusing flag notices when first search query comes from command line parms
     is_query_string_in_parms = query_string and len(query_string)>0
 
     while True:
@@ -207,7 +206,10 @@ if __name__ == '__main__':
                     print(utorid, "warning: the student likely has dropped because not in quercus lecture section")
 
             # user selects which student if more than one utorid matched above
-            utorid = select_student_menu(matched_utorids,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
+            if len(matched_utorids)==1:
+                utorid = matched_utorids[0]
+            else:
+                utorid = select_student_menu(matched_utorids,utorid_to_quercus_line_map,utorid_to_cdf_line_map)
             if not utorid:
                 continue
 
