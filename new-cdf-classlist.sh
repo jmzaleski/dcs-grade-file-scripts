@@ -81,5 +81,10 @@ echo
 echo xdiff $TMP_SORT  $CLASSLIST
 echo
 
-
-
+cat <<EOF
+now wrangle google doc view:
+1. go to cdf workbook, rename first sheet (maybe append -N?)
+2. import the .csv this script wrote as new sheet in this workbook
+3. move the sheet to leftmost
+4. hide old sheet to save confusion
+EOF
