@@ -15,10 +15,10 @@ def parse_positional_args():
     args = parser.parse_args()
     return (args.cdf_csv_file[0],args.quercus_csv_file[0], args.query_string)
 
-def read_cdf_file(CDF_CLASS_FILE):
+def read_cdf_file(cdf_class_file):
     # read the CDF file and make a dict key'd by utorid of each line
     cdf_map = {}
-    with open(CDF_CLASS_FILE) as csv_file:
+    with open(cdf_class_file) as csv_file:
         for a_line in csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab):
             cdf_map[a_line[0]] = a_line
     return cdf_map
@@ -64,7 +64,6 @@ def select_student_menu(matched_utorids,q_map,cdf_map):
     for utorid in matched_utorids:
         if utorid in q_map:
             cols = filter(lambda a_col: a_col and a_col != "0.0", q_map[utorid])
-            
             flat_cols = ", ".join(cols)
             l = (flat_cols[:85] + '..') if len(flat_cols) > 75 else flat_cols
             choose_student_menu.append(l)
@@ -82,7 +81,6 @@ def select_student_menu(matched_utorids,q_map,cdf_map):
     #print("got utorid", utorid)
     return utorid
 
-
 def select_student_field(utorid,q_map,cdf_map,q_col_headers):
     "display menu so user can choose which field they want"
     IX_EMAIL_CDF = 5 #email always 5th field of CDF file
@@ -97,7 +95,7 @@ def select_student_field(utorid,q_map,cdf_map,q_col_headers):
         menu_data.append( "no email because " + utorid + " missing in CDF")
 
     # display menu of fields in matched student
-    # have to use this for a while to learn what want to see.
+    # hard to know what want to see in this menu.
     # quercus has many many fields because grades add much cruft.
     #print("q_map[utorid]",q_map[utorid])
     cut_field = 6 #zillions of mark data fields follow
@@ -108,10 +106,10 @@ def select_student_field(utorid,q_map,cdf_map,q_col_headers):
         menu_data.append(data)
         all_fields += "|" + data
         cut_field -= 1
-        if cut_field ==0:
+        if cut_field == 0:
             break
 
-    # make an all up field (useful to share with TAs, etc)
+    # make an all-included field (useful to share with TAs, etc)
     menu_items.append("all:" + all_fields)
     menu_data.append(all_fields)
 
@@ -122,7 +120,6 @@ def select_student_field(utorid,q_map,cdf_map,q_col_headers):
         return None
     else:
         return menu_data[resp]
-
 
 def search_for_utorids(query_string,utorid_to_quercus_line_map,utorid_to_cdf_line_map):
     "return list of utorid's from records matching query_string in utorid_to_quercus_line_map, utorid_to_cdf_line_map"
@@ -223,9 +220,10 @@ if __name__ == '__main__':
 
             # if email selected.. try and open the mailto in default mail client.
             if selected_field.find("@") > 0:
+                url = "mailto:%s" % selected_field
+                print(url)
                 resp = input("open mailto: ?  [yYnN]* >")
                 if resp.lower().startswith( 'y'):
-                    url = "mailto:%s" % selected_field
                     import webbrowser
                     webbrowser.open(url)
         except:
