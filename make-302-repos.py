@@ -10,17 +10,15 @@ import csv, sys
 # 1. csv file listing group name and **utorid** of eack member of each group
 # (exported from google "signup sheet" publically writable by class)
 
-#FN="teams.csv"
-FN="csc302-2020S-P0-project-team-formation-signup-sheet - by-utorid.csv"
+FN="csc302-2020F-P0-project-team-formation-signup-sheet - by-utorid.csv"
 
 # 2. csv file mapping utorid's to githubid (typically gathered from google form)
 # (exported as CSV from google form responses  filled out by class in early days of semester)
-#MN="utori-github-map-map.csv"
-MN="CSC302-2020S-Initial-Username-Registration (Responses) - Form Responses 1.csv"
-
+MN="CSC302H1F-2020-Initial-Username-Registration (Responses) - Form Responses 1.csv"
 
 # small classes have just one TA
-TA = ['MusaTalluzi'] 
+#TA = ['MusaTalluzi']
+TA = []  #covidized.. 0 TAs!
 
 utorid_to_github_map = {}
 
@@ -37,7 +35,7 @@ YAML_HDR = '''
 default_access_permission: write
 
 repo_properties:
-  description: "initally empty repo, intended for csc302 project"
+  description: "initally empty repo, intended for csc302 project, created by make-302-repos.py"
   private: true
 
 repos:
@@ -146,9 +144,11 @@ if __name__ == "__main__" :
         #print("header:", list_of_lists.pop(0) )
 
     #print(TA)
-    if False:
+    if True:
+        #team repos
         print_gitomator_yaml(list_of_lists,TA)
     else:
+        #a3 repos
         #sanity_check(list_of_lists)
         print_gitomator_individual_yaml(list_of_lists,TA)
         
