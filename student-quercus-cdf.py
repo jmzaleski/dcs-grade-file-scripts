@@ -97,8 +97,8 @@ def select_student_field(utorid,q_map,cdf_map,q_col_headers):
     # display menu of fields in matched student
     # hard to know what want to see in this menu.
     # quercus has many many fields because grades add much cruft.
-    #print("q_map[utorid]",q_map[utorid])
-    cut_field = 6 #zillions of mark data fields follow
+    if False: print("q_map[utorid]",q_map[utorid])
+    cut_field = 8 #zillions of mark data fields follow. this is a magic number
     all_fields = ""
     for (hdr,data) in zip(q_col_headers,q_map[utorid]):
         #if data and data != "0.0":
@@ -171,6 +171,7 @@ if __name__ == '__main__':
     with open(quercus_grades_file) as csv_file:
         csv_file_reader = csv.reader(csv_file, delimiter=',', quotechar='"',dialect=csv.excel_tab)
         q_col_headers = next(csv_file_reader)
+        if False: print("q_col_headers",q_col_headers)
         next(csv_file_reader) 
         def acc(d, item):
             d[item[q_col_headers.index(QUERCUS_UTORID_COL_NAME)]] = item

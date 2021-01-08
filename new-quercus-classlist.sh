@@ -41,11 +41,20 @@ read -p "hit return to use grades file exported from quercus: $NEWEST >" JUNK
 #sort by utorid
 SORT="sort --field-separator=,  --key=1,1"
 # cut out the columns we need -- we don't need grades, just the student ID fields
-CUT="cut -d, -f1-5,7"
+# Doh, nasty workaround. The name column header is just "name"
+# but the name column has a comma in it "zaleski, mathew", so cut commands are different:
+
+CUT="cut -d, -f1-4,6-7"
+CUT2="cut -d, -f1-5,7-8"
 
 set -x
 cp $NEWEST $QFRESH || die failed to copy $NEWEST $QFRESH
-(head -n 1 $QFRESH       && tail -n +3 $QFRESH       | $SORT ) | $CUT  > $FRESH_SORT || die sort $QFRESH failed
+#head -1 $QFRESH
+#head -n 1 $QFRESH # | $CUT 
+
+# whew. do CUT command on first line, cut2 on remaining. skip line 2
+(head -n 1 $QFRESH | $CUT && tail -n +3 $QFRESH | $SORT | $CUT2)  > $FRESH_SORT || die sort $QFRESH failed
+#head -1 $FRESH_SORT
 set -
 
 if test ! -f $QCLASSLIST
