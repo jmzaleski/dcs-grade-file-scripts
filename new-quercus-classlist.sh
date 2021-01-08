@@ -53,7 +53,7 @@ then
 	echo $0: cannot find class list $QCLASSLIST creating one..	
 	read -p "hit enter to run: /bin/cp -i $FRESH_SORT $QCLASSLIST >" JUNK
 	/bin/cp -i $FRESH_SORT $QCLASSLIST
-	echo fresh class list created from CDF
+	echo fresh class list created from quercus download..
 	ls -l $QCLASSLIST
 	exit
 fi	
